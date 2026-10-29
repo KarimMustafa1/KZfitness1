@@ -1,32 +1,15 @@
-# KZfitness 💪
+ ## KZfitness
 
-KZfitness is a personal computer science project inspired by my interest in fitness, strength training, and helping people improve themselves.
-
-I wanted to explore how programming and AI tools could make tracking macros and logging lifts easier for beginners and people like me who go to the gym.
-
-With KZfitness, you don't have to keep going back and forth with an AI chatbot just to ask how many calories are in a chicken breast. The app includes an AI fitness assistant designed to answer nutrition questions about protein, carbohydrates, and calories, as well as provide advice on workout splits based on your fitness information.
-
-By entering details such as your age, sex, weight, and height, you can get more personalized guidance to make macro tracking simpler and more convenient.
+KZfitness is a personal computer science project built around my interest in fitness and strength training. It's a web app that puts macro tracking, workout logging, and an AI fitness assistant in one place, so you don't have to keep switching between a tracker and a chatbot just to find out how many calories are in a chicken breast.
 
 ## Features
 
-#### Macro Tracking:
-Track daily calories, protein, carbohydrates, and fats.
-
-#### Workout Logging: 
-Record exercises and lifts to keep track of gym sessions.
-
-#### AI Fitness Assistant: 
-Ask questions about nutrition, calorie estimates, and fitness.
-
-#### Personalized Guidance: 
-Get fitness and nutrition recommendations based on your information and goals.
-
-#### Fitness Calculators: 
-Calculate BMI, estimate daily calorie needs, and use the one-rep max calculator.
-
-#### Progress Tracking: 
-Review nutrition and workout data through progress graphs.
+- **Macro tracking:** log daily calories, protein, carbohydrates, and fats.
+- **Workout logging:** record exercises and lifts for each gym session.
+- **AI fitness assistant:** ask about nutrition, calorie estimates, and workout splits.
+- **Personalized guidance:** enter your age, sex, weight, and height to get recommendations that fit you.
+- **Fitness calculators:** BMI, daily calorie needs, and a one-rep max calculator.
+- **Progress tracking:** graphs of your nutrition and workout data over time.
 
 
 ## Screenshots
@@ -55,18 +38,20 @@ Review nutrition and workout data through progress graphs.
 ### Profile
 ![KZfitness AI Assistant](07_profile_dark_desktop.png)
 
-## What I Learned
+# What I Learned
 
-Building KZfitness has helped me explore how different technologies work together to turn an idea into a working application. I learned more about using Python for fitness calculations and application logic, how HTML structures a website, and how SQL can be used to store and manage data.
+- How Python, a database, and a web page work together in one application.
+- How to store and read data with SQL.
+- How to organize code into separate modules.
+- How to add an AI API to an app and use a person's fitness details to make its answers more relevant.
 
-I also explored how to integrate an AI API into an application and use personal fitness information to make its responses more relevant. Along the way, I gained experience organizing code into separate modules and understanding how different parts of a web application communicate with each other.
+Building KZfitness showed me how computer science can solve problems I run into in my own life, and it made me want to get better at programming.
 
-Most importantly, this project has shown me how computer science can be used to solve problems I experience in my own life, and it has motivated me to keep improving my programming skills.
+## How to Run
+
+[Add the steps here: install the requirements, set your API key as an environment variable, and run the app.]
 
 ## My Goal
 
-My goal is to turn KZfitness into a published application that people can use to make fitness and nutrition tracking simpler. I want to keep improving its design, testing its features, and making sure its calculations and AI responses are as reliable and useful as possible.
-
-Since fitness is something I care about personally, I want to build a tool that helps beginners understand their nutrition, track their progress, and feel more confident in the gym. Publishing KZfitness would be an opportunity to take a personal idea beyond just writing code and turn it into something practical that can help other people.
-
+I want to publish KZfitness so other beginners can use it. First I need to keep improving the design, test every feature, and make sure the calculations and AI answers are accurate and useful.
 
