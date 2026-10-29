@@ -1,0 +1,110 @@
+{#
+    coach.html  (route: /coach)
+    Ask the AI Coach a question. The question is sent to Claude together with the
+    fitness data listed on the right, so the answer can use the real numbers.
+    Without an API key the page still works, but the Ask button is switched off.
+#}
+{% extends "base.html" %}
+
+{% block title %}AI Coach{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>AI Coach</h1>
+        <p class="page-sub">Ask about food, training or recovery. Answers use your targets and today's food log.</p>
+    </div>
+    {% if connected %}
+        <span class="status-pill on">Connected to Claude</span>
+    {% endif %}
+</header>
+
+{# Today's progress bars, so the numbers are in view while asking #}
+{% if today %}
+    <section class="card today-strip" aria-label="Today so far">
+        {% set progress = today %}
+        {% include "_progress_bars.html" %}
+    </section>
+{% endif %}
+
+<div class="coach-layout">
+
+    <div class="coach-main">
+
+        {# ---------- The answer (after a question was sent) ---------- #}
+        {% if question and (answer or error) %}
+            <section class="card answer-card" aria-live="polite">
+                <p class="asked"><span class="muted">You asked</span> {{ question }}</p>
+
+                {% if answer %}
+                    {# Jinja escapes the answer, so any HTML in it is shown as text, never run #}
+                    <div class="answer-text">{{ answer }}</div>
+                    <p class="answer-foot">Based on your profile and today's food log. General guidance, not medical advice.</p>
+                {% endif %}
+
+                {% if error %}
+                    <div class="form-errors" role="alert">{{ error }}</div>
+                {% endif %}
+            </section>
+        {% elif error %}
+            <div class="form-errors" role="alert">{{ error }}</div>
+        {% endif %}
+
+        {# ---------- Ask a question ---------- #}
+        <section class="card">
+            <h2 class="card-title">{% if answer %}Ask a follow-up{% else %}Ask the coach{% endif %}</h2>
+
+            <form method="POST" action="{{ url_for('coach') }}" class="ask-form" id="coach-form">
+                <label class="sr-only" for="question">Your question</label>
+                <textarea name="question" id="question" rows="3" maxlength="{{ max_length }}" required
+                          placeholder="e.g. What should I eat for dinner if I have 700 calories left?"
+                          {% if not connected %}disabled{% endif %}>{{ prefill }}</textarea>
+
+                <div class="ask-actions">
+                    <button type="submit" class="button" {% if not connected %}disabled{% endif %}>
+                        {% if connected %}Ask the coach{% else %}Connect Claude to ask{% endif %}
+                    </button>
+                    {# Shown by script.js while waiting for the answer #}
+                    <span class="thinking" aria-live="polite">The coach is thinking…</span>
+                </div>
+
+                {# Each suggestion is a submit button that sends its own text as the question.
+                   formnovalidate lets it send even when the text box is empty. #}
+                <p class="suggest-label">Or start with one of these</p>
+                <div class="suggestions">
+                    {% for text in suggestions %}
+                        <button type="submit" name="suggestion" value="{{ text }}" class="suggestion" formnovalidate
+                                {% if not connected %}disabled{% endif %}>{{ text }}</button>
+                    {% endfor %}
+                </div>
+            </form>
+        </section>
+    </div>
+
+    {# ---------- What is sent to Claude ---------- #}
+    <aside class="coach-side">
+        <section class="card">
+            <h2 class="card-title">Shared with the coach</h2>
+            <p class="muted small">Sent with each question so answers fit your numbers. Your name is not sent.</p>
+            <dl class="info-list">
+                {% for label, value in info.items() %}
+                    <div>
+                        <dt>{{ label }}</dt>
+                        <dd>{{ value }}</dd>
+                    </div>
+                {% endfor %}
+            </dl>
+            {% if "Profile" in info %}
+                <a href="{{ url_for('profile') }}" class="text-link">Save your profile for personalised answers</a>
+            {% endif %}
+        </section>
+
+        <aside class="note">
+            <strong>A fitness assistant, not a doctor.</strong>
+            The coach gives general fitness and nutrition guidance and can't diagnose or treat anything.
+            For pain, injuries, health conditions or medication, speak to a qualified healthcare
+            professional. AI can make mistakes, so check important numbers.
+        </aside>
+    </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,231 @@
+{#
+    dashboard.html  (route: /)
+    Today at a glance: calories and macros, the coach, weight, recent workouts,
+    this week's activity and the profile numbers.
+    Without a saved profile it only shows a "set up your targets" card.
+#}
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+
+{% if not profile %}
+
+    {# ---------- No profile yet ---------- #}
+    <section class="card empty-state">
+        <h1>Set up your targets</h1>
+        <p>Enter your age, height, weight and goal, and KZfitness works out your daily calories and macros.</p>
+        <a href="{{ url_for('profile') }}" class="button">Create your profile</a>
+    </section>
+
+{% else %}
+    {% set target = summary.calorie_target %}
+    {% set cal = progress.calories %}
+
+    <header class="page-header">
+        <div>
+            <h1>Hello, {{ profile.name }}</h1>
+            {# script.js replaces "Today" with the date, e.g. "Monday 26 October" #}
+            <p class="page-sub"><span id="today-date">Today</span>. Goal: {{ profile.goal_label | lower }}.</p>
+        </div>
+        <div class="header-actions">
+            <a href="{{ url_for('workout') }}" class="button button-ghost">Log workout</a>
+            <a href="{{ url_for('food') }}" class="button">Log food</a>
+        </div>
+    </header>
+
+    <div class="dash-grid">
+
+        {# ---------- Today: calorie ring and macro bars ---------- #}
+        <section class="card today-card">
+            <div class="card-head">
+                <h2 class="card-title">Today</h2>
+                <span class="muted">
+                    {% if entry_count == 0 %}Nothing logged yet{% else %}{{ entry_count }} item{{ 's' if entry_count != 1 }} logged{% endif %}
+                </span>
+            </div>
+
+            <div class="today-body">
+                <div class="today-calories">
+
+                    {# The ring is two circles; script.js sets how much of the green one is drawn #}
+                    <div class="ring {% if cal.over %}is-over{% endif %}" data-progress="{{ cal.percent | round(1) }}">
+                        <svg viewBox="0 0 120 120" aria-hidden="true">
+                            <circle class="ring-track" cx="60" cy="60" r="52"/>
+                            <circle class="ring-fill" cx="60" cy="60" r="52"/>
+                        </svg>
+                        <div class="ring-label">
+                            {% if cal.over %}
+                                <strong>{{ (0 - cal.remaining) | amount(0) }}</strong>
+                                <span>kcal over</span>
+                            {% else %}
+                                <strong>{{ cal.remaining | amount(0) }}</strong>
+                                <span>kcal left</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <dl class="mini-stats">
+                        <div><dt>Eaten</dt><dd>{{ cal.consumed | amount(0) }}</dd></div>
+                        <div><dt>Target</dt><dd>{{ target | amount(0) }}</dd></div>
+                    </dl>
+                </div>
+
+                <div class="today-macros">
+                    {% set show = ['protein', 'carbs', 'fat'] %}
+                    {% include "_progress_bars.html" %}
+                </div>
+            </div>
+        </section>
+
+        {# ---------- Ask the coach ---------- #}
+        <section class="card coach-card">
+            <div class="card-head">
+                <h2 class="card-title">Ask the coach</h2>
+                <a href="{{ url_for('coach') }}" class="text-link">Open coach</a>
+            </div>
+            {% if coach_connected %}
+                <p class="muted">Answers use today's numbers, so they fit what you have left.</p>
+                {# Sends the question to the AI Coach page, which shows the answer #}
+                <form method="POST" action="{{ url_for('coach') }}" class="ask-form compact" id="coach-form">
+                    <label class="sr-only" for="dash-question">Your question</label>
+                    <textarea name="question" id="dash-question" rows="2" maxlength="1000" required
+                              placeholder="e.g. How much protein should I eat?"></textarea>
+                    <div class="suggestions">
+                        {% if not cal.over %}
+                            {% set dinner = "What should I eat with " ~ (cal.remaining | amount(0)) ~ " kcal left today?" %}
+                            <button type="submit" name="suggestion" value="{{ dinner }}" class="suggestion" formnovalidate>{{ dinner }}</button>
+                        {% endif %}
+                        <button type="submit" name="suggestion" value="Give me a high-protein breakfast." class="suggestion" formnovalidate>Give me a high-protein breakfast.</button>
+                    </div>
+                    <div class="ask-actions">
+                        <button type="submit" class="button">Ask</button>
+                        <span class="thinking" aria-live="polite">Thinking…</span>
+                    </div>
+                </form>
+            {% else %}
+                <p class="muted">The AI Coach answers questions using your targets and food log.
+                    It needs an Anthropic API key to work.</p>
+                <a href="{{ url_for('coach') }}" class="button button-ghost">How to connect it</a>
+            {% endif %}
+        </section>
+
+        {# ---------- Weight ---------- #}
+        <section class="card weight-card">
+            <div class="card-head">
+                <h2 class="card-title">Weight</h2>
+                <a href="{{ url_for('progress') }}#weight" class="text-link">Log weigh-in</a>
+            </div>
+            <div class="big-number">
+                {{ (weight.current if weight else profile.weight_kg) | amount }}<small> kg</small>
+            </div>
+            {% if weight and weigh_in_count > 1 %}
+                {% set change = weight.change %}
+                <p class="change {% if change < -0.05 %}down{% elif change > 0.05 %}up{% endif %}">
+                    {% if change > 0.05 %}+{{ change | amount }} kg{% elif change < -0.05 %}−{{ (0 - change) | amount }} kg{% else %}No change{% endif %}
+                    since {{ weight.start_date.strftime('%d %b') }}
+                </p>
+                {# Small trend chart, drawn by progress.js #}
+                <div class="chart-box chart-mini"><canvas id="weight-chart" role="img" aria-label="Small line chart of recent body weight"></canvas></div>
+            {% else %}
+                <p class="muted">From your profile. Log a weigh-in on two different days to see your trend here.</p>
+            {% endif %}
+        </section>
+
+        {# ---------- Recent workouts (last 5) ---------- #}
+        <section class="card workouts-card">
+            <div class="card-head">
+                <h2 class="card-title">Recent workouts</h2>
+                <a href="{{ url_for('workout') }}" class="text-link">All workouts</a>
+            </div>
+            {% if recent_workouts %}
+                <ul class="recent-list">
+                    {% for w in recent_workouts %}
+                        <li>
+                            <div>
+                                <strong>{{ w.exercise.name }}</strong>
+                                <span class="muted">
+                                    {% if w.weight_kg > 0 %}{{ w.weight_kg | amount }} kg{% else %}Bodyweight{% endif %}
+                                    × {{ w.reps }} reps × {{ w.sets }} sets
+                                </span>
+                            </div>
+                            <time class="muted" datetime="{{ w.performed_on.isoformat() }}">{{ w.performed_on.strftime('%a %d %b') }}</time>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="empty-note">No workouts yet. <a href="{{ url_for('workout') }}" class="text-link">Log your first one</a>.</p>
+            {% endif %}
+        </section>
+
+        {# ---------- This week: one box per day, Monday to Sunday ---------- #}
+        <section class="card week-card">
+            <div class="card-head">
+                <h2 class="card-title">This week</h2>
+                <a href="{{ url_for('progress') }}" class="text-link">Progress</a>
+            </div>
+
+            <div class="week-grid">
+                <div class="week-row">
+                    <span class="week-label">Trained</span>
+                    {% for d in week %}
+                        <span class="day-box train {% if d.trained %}done{% endif %} {% if d.is_future %}future{% endif %}"
+                              title="{{ d.name }}: {{ 'trained' if d.trained else 'no workout' }}"></span>
+                    {% endfor %}
+                </div>
+                <div class="week-row">
+                    <span class="week-label">Food logged</span>
+                    {% for d in week %}
+                        <span class="day-box food {% if d.logged %}done{% endif %} {% if d.is_future %}future{% endif %}"
+                              title="{{ d.name }}: {{ 'food logged' if d.logged else 'nothing logged' }}"></span>
+                    {% endfor %}
+                </div>
+                <div class="week-row week-letters" aria-hidden="true">
+                    <span class="week-label"></span>
+                    {% for d in week %}<span class="{% if d.is_today %}today{% endif %}">{{ d.letter }}</span>{% endfor %}
+                </div>
+            </div>
+
+            <p class="week-summary">
+                {{ training_days }} training day{{ 's' if training_days != 1 }}, and food logged on
+                {{ food_days }} of {{ days_so_far }} day{{ 's' if days_so_far != 1 }} so far.
+            </p>
+        </section>
+
+        {# ---------- Profile numbers ---------- #}
+        <section class="card numbers-card">
+            <div class="card-head">
+                <h2 class="card-title">Your numbers</h2>
+                <a href="{{ url_for('profile') }}" class="text-link">Edit profile</a>
+            </div>
+            <dl class="numbers">
+                <div>
+                    <dt>BMI</dt>
+                    <dd>{{ summary.bmi }} <span class="badge badge-{{ summary.bmi_category | lower | replace(' ', '-') }}">{{ summary.bmi_category }}</span></dd>
+                </div>
+                <div><dt>Burned at rest (BMR)</dt><dd>{{ summary.bmr | amount(0) }} kcal</dd></div>
+                <div><dt>Maintenance (TDEE)</dt><dd>{{ summary.tdee | amount(0) }} kcal</dd></div>
+                <div>
+                    <dt>Daily target</dt>
+                    <dd>{{ target | amount(0) }} kcal
+                        {% if summary.calorie_low != summary.calorie_high %}
+                            <span class="muted range">Range {{ summary.calorie_low | amount(0) }}–{{ summary.calorie_high | amount(0) }}</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div><dt>Activity</dt><dd>{{ profile.activity_label }}</dd></div>
+            </dl>
+            <a href="{{ url_for('calculators') }}#energy" class="text-link">How these are calculated</a>
+        </section>
+    </div>
+{% endif %}
+{% endblock %}
+
+{# The weight chart only loads when there are at least two weigh-ins to draw #}
+{% block scripts %}
+    {% if profile and weigh_in_count > 1 %}
+        <script id="chart-data" type="application/json">{{ chart_data | tojson }}</script>
+        <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='progress.js') }}"></script>
+    {% endif %}
+{% endblock %}

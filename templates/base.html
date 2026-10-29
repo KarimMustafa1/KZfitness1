@@ -1,0 +1,174 @@
+{#
+    base.html
+    The layout every page shares: sidebar (desktop), top bar and bottom tab bar (phone),
+    flash messages, and the theme switch. Each page fills in the "title", "content"
+    and (optionally) "scripts" blocks.
+-#}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Dashboard{% endblock %} · KZfitness</title>
+
+    {# Set the theme before the page draws, so dark mode doesn't flash white first.
+       Uses the saved choice if there is one, otherwise the computer's setting. #}
+    <script>
+        (function () {
+            var saved = null;
+            try { saved = localStorage.getItem("theme"); } catch (e) {}
+            var prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+            document.documentElement.dataset.theme = saved || (prefersDark ? "dark" : "light");
+        })();
+    </script>
+
+    {# Fonts: Barlow for text, Barlow Semi Condensed for headings and numbers #}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{# ---------- Reusable pieces ---------- #}
+
+{# icon('food') draws one of the small line icons used in the menus #}
+{% macro icon(name) -%}
+<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    {%- if name == 'dashboard' -%}
+        <rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/>
+        <rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>
+    {%- elif name == 'food' -%}
+        <path d="M3 2v7a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/>
+        <path d="M21 15V2a5 5 0 0 0-5 5v6a2 2 0 0 0 2 2h3zm0 0v7"/>
+    {%- elif name == 'workout' -%}
+        <path d="M6 6v12M18 6v12M2.5 9.5v5M21.5 9.5v5M6 12h12"/>
+    {%- elif name == 'progress' -%}
+        <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+    {%- elif name == 'calculators' -%}
+        <rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 18h.01M12 18h.01M16 18h.01"/>
+    {%- elif name == 'coach' -%}
+        <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15v4M17 17h4"/>
+    {%- elif name == 'profile' -%}
+        <circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>
+    {%- elif name == 'menu' -%}
+        <path d="M4 6h16M4 12h16M4 18h16"/>
+    {%- elif name == 'moon' -%}
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+    {%- elif name == 'sun' -%}
+        <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+    {%- endif -%}
+</svg>
+{%- endmacro %}
+
+{# The logo: a weight plate drawn with three circles #}
+{% macro brand_mark() -%}
+<svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+    <circle cx="16" cy="16" r="15" class="plate-outer"/>
+    <circle cx="16" cy="16" r="10" class="plate-ring"/>
+    <circle cx="16" cy="16" r="3.5" class="plate-hub"/>
+</svg>
+{%- endmacro %}
+
+{# Light/dark switch. CSS shows only the half that matches the current theme. #}
+{% macro theme_button() -%}
+<button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch between light and dark theme">
+    <span class="when-light">{{ icon('moon') }}<span class="theme-label">Dark theme</span></span>
+    <span class="when-dark">{{ icon('sun') }}<span class="theme-label">Light theme</span></span>
+</button>
+{%- endmacro %}
+
+{# Menu entries: (link, sidebar label, icon, short label for the phone tab bar).
+   A short label of None means the page is only in the sidebar. #}
+{% set nav_items = [
+    (url_for('dashboard'), 'Dashboard', 'dashboard', 'Today'),
+    (url_for('food'), 'Food', 'food', 'Food'),
+    (url_for('workout'), 'Workout', 'workout', 'Workout'),
+    (url_for('progress'), 'Progress', 'progress', 'Progress'),
+    (url_for('coach'), 'AI Coach', 'coach', 'Coach'),
+    (url_for('calculators'), 'Calculators', 'calculators', None),
+    (url_for('profile'), 'Profile', 'profile', None),
+] %}
+
+{# Returns "active" for the menu entry of the page we're on (including its sub-pages) #}
+{% macro is_active(url) -%}
+    {{- 'active' if request.path == url or (url != '/' and request.path.startswith(url ~ '/')) else '' -}}
+{%- endmacro %}
+
+{# ---------- Page layout ---------- #}
+
+<div class="layout">
+
+    {# Sidebar: always visible on desktop, slides in from the left on phones #}
+    <aside class="sidebar" id="sidebar">
+        <a href="{{ url_for('dashboard') }}" class="brand">
+            {{ brand_mark() }}
+            <span class="brand-name">KZfitness</span>
+        </a>
+
+        <nav class="nav" aria-label="Main">
+            {% for url, label, icon_name, short_label in nav_items %}
+                {% set state = is_active(url) %}
+                <a href="{{ url }}" class="nav-link {{ state }}" {% if state %}aria-current="page"{% endif %}>
+                    {{ icon(icon_name) }}
+                    <span>{{ label }}</span>
+                </a>
+            {% endfor %}
+        </nav>
+
+        <div class="sidebar-footer">
+            {{ theme_button() }}
+        </div>
+    </aside>
+
+    {# Dark background behind the open sidebar on phones; tapping it closes the menu #}
+    <div class="overlay" id="overlay"></div>
+
+    {# Top bar: phones only #}
+    <header class="topbar">
+        <a href="{{ url_for('dashboard') }}" class="brand">
+            {{ brand_mark() }}
+            <span class="brand-name">KZfitness</span>
+        </a>
+        <div class="topbar-actions">
+            {{ theme_button() }}
+            <button class="menu-button" id="menu-button" aria-label="Open menu">{{ icon('menu') }}</button>
+        </div>
+    </header>
+
+    <main class="main">
+
+        {# Messages from the last action, e.g. "Profile saved." #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-stack">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}" role="status">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    {# Bottom tab bar: phones only, the five main pages #}
+    <nav class="tabbar" aria-label="Quick">
+        {% for url, label, icon_name, short_label in nav_items if short_label %}
+            {% set state = is_active(url) %}
+            <a href="{{ url }}" class="tab {{ state }}" {% if state %}aria-current="page"{% endif %}>
+                {{ icon(icon_name) }}
+                <span>{{ short_label }}</span>
+            </a>
+        {% endfor %}
+    </nav>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+{# Extra scripts for one page (the charts use this) #}
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,40 @@
+{#
+    _progress_bars.html
+    The calorie and macro progress bars, shared by the Dashboard, Food and AI Coach pages.
+    Needs:  progress  the result of daily_progress() in calculations.py
+    Optional:  show  which rows to draw (all four if not set)
+#}
+
+{# Each row: (key in progress, label, unit, decimal places) #}
+{% set rows = [
+    ('calories', 'Calories', 'kcal', 0),
+    ('protein', 'Protein', 'g', 1),
+    ('carbs', 'Carbs', 'g', 1),
+    ('fat', 'Fat', 'g', 1),
+] %}
+{% set show = show | default(['calories', 'protein', 'carbs', 'fat']) %}
+
+<ul class="progress-list">
+    {% for key, label, unit, decimals in rows if key in show %}
+        {% set p = progress[key] %}
+        <li class="progress-row {% if p.over %}is-over{% endif %}">
+            <div class="progress-top">
+                <span class="progress-name"><span class="dot {{ key }}"></span>{{ label }}</span>
+                <span class="progress-numbers">
+                    <strong>{{ p.consumed | amount(decimals) }}</strong> / {{ p.target | amount(0) }} {{ unit }}
+                </span>
+            </div>
+
+            {# The bar's width is the percentage eaten (capped at 100% in Python) #}
+            <div class="progress-track" role="progressbar" aria-label="{{ label }}"
+                 aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ p.percent | round | int }}">
+                <span class="progress-fill {{ key }}" style="width: {{ p.percent | round(1) }}%"></span>
+            </div>
+
+            <span class="progress-left">
+                {% if p.over %}{{ (0 - p.remaining) | amount(decimals) }} {{ unit }} over target
+                {% else %}{{ p.remaining | amount(decimals) }} {{ unit }} remaining{% endif %}
+            </span>
+        </li>
+    {% endfor %}
+</ul>

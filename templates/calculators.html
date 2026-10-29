@@ -1,0 +1,252 @@
+{#
+    calculators.html  (route: /calculators)
+    Three calculators: daily calories (BMR → TDEE → goal), BMI, and body fat (U.S. Navy method).
+    The forms use GET, so the inputs go in the address bar and a result can be bookmarked.
+    The hidden "calculator" field says which one was submitted. Fields start filled in
+    from the saved profile ("defaults"), or with what was typed ("submitted").
+#}
+{% extends "base.html" %}
+
+{% block title %}Calculators{% endblock %}
+
+{# ---------- Form pieces used by all three calculators ---------- #}
+
+{# A number box with its unit, e.g. Height [ 178 ] cm #}
+{% macro number_field(name, label, unit, values, required=True, step="0.1") -%}
+<label class="field">
+    <span>{{ label }}</span>
+    <div class="input-unit">
+        <input type="number" name="{{ name }}" value="{{ values.get(name, '') }}"
+               min="{{ limits[name][0] }}" max="{{ limits[name][1] }}" step="{{ step }}"
+               {% if required %}required{% endif %}>
+        {% if unit %}<em>{{ unit }}</em>{% endif %}
+    </div>
+</label>
+{%- endmacro %}
+
+{# Male / Female switch #}
+{% macro sex_field(values) -%}
+<div class="field">
+    <span>Sex</span>
+    <div class="segmented">
+        {% for value, label in sex_choices.items() %}
+            <label>
+                <input type="radio" name="sex" value="{{ value }}"
+                       {% if values.get('sex') == value %}checked{% endif %} required>
+                <span>{{ label }}</span>
+            </label>
+        {% endfor %}
+    </div>
+</div>
+{%- endmacro %}
+
+{# Error list, shown only on the calculator that was submitted #}
+{% macro error_box(calculator) -%}
+    {% if chosen == calculator and errors %}
+        <div class="form-errors" role="alert">
+            <strong>Please check your entries</strong>
+            <ul>{% for message in errors %}<li>{{ message }}</li>{% endfor %}</ul>
+        </div>
+    {% endif %}
+{%- endmacro %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Calculators</h1>
+        <p class="page-sub">
+            {% if profile %}Filled in from your profile — change any number to try a "what if".
+            {% else %}Enter your details below, or <a href="{{ url_for('profile') }}" class="text-link">save a profile</a> to fill these in automatically.{% endif %}
+        </p>
+    </div>
+    <nav class="chip-nav" aria-label="Jump to calculator">
+        <a href="#energy">Calories</a>
+        <a href="#bmi">BMI</a>
+        <a href="#body-fat">Body fat</a>
+    </nav>
+</header>
+
+{# ========== 1. Daily calories ========== #}
+{% set v = submitted if chosen == 'energy' else defaults %}
+
+<section class="card calc-card" id="energy">
+    <div class="calc-head">
+        <h2>Daily calories</h2>
+        <p>BMR → maintenance (TDEE) → calories for your goal</p>
+    </div>
+
+    <div class="calc-body calc-body-split">
+        <form method="GET" action="{{ url_for('calculators') }}#energy" class="calc-form">
+            <input type="hidden" name="calculator" value="energy">
+
+            {{ error_box('energy') }}
+
+            <div class="form-grid">
+                {{ sex_field(v) }}
+                {{ number_field('age', 'Age', 'years', v, step="1") }}
+                {{ number_field('height_cm', 'Height', 'cm', v) }}
+                {{ number_field('weight_kg', 'Weight', 'kg', v) }}
+                <label class="field field-wide">
+                    <span>Activity level</span>
+                    <select name="activity_level" required>
+                        <option value="" disabled {% if not v.get('activity_level') %}selected{% endif %}>Choose your activity level</option>
+                        {% for value, label in activity_choices.items() %}
+                            <option value="{{ value }}" {% if v.get('activity_level') == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </label>
+            </div>
+            <button type="submit" class="button">Calculate</button>
+        </form>
+
+        <div class="calc-output">
+            {% if chosen == 'energy' and result %}
+                {# The result as three steps, each with the working shown #}
+                <ol class="steps">
+                    <li>
+                        <span class="step-num">1</span>
+                        <div>
+                            <span class="step-label">BMR · burned at complete rest</span>
+                            <strong class="step-value">{{ "{:,}".format(result.bmr) }} <small>kcal/day</small></strong>
+                            <code>10 × {{ v.get('weight_kg') }} + 6.25 × {{ v.get('height_cm') }} − 5 × {{ v.get('age') }} {{ '+ 5' if v.get('sex') == 'male' else '− 161' }}</code>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="step-num">2</span>
+                        <div>
+                            <span class="step-label">TDEE · maintenance calories</span>
+                            <strong class="step-value">{{ "{:,}".format(result.tdee) }} <small>kcal/day</small></strong>
+                            <code>{{ "{:,}".format(result.bmr) }} × {{ result.multiplier }} ({{ activity_choices[v.get('activity_level')].split(' (')[0] }})</code>
+                        </div>
+                    </li>
+                    <li>
+                        <span class="step-num">3</span>
+                        <div class="step-goals">
+                            <span class="step-label">Calories for each goal</span>
+                            <table class="goal-table">
+                                {% for goal, label in goal_choices.items() %}
+                                    {% set g = result.goals[goal] %}
+                                    <tr class="{% if profile and profile.goal == goal %}is-mine{% endif %}">
+                                        <th>
+                                            {{ label }}
+                                            {% if profile and profile.goal == goal %}<span class="tag">Your goal</span>{% endif %}
+                                            <small>{{ goal_hints[goal] }}</small>
+                                        </th>
+                                        <td>
+                                            {% if g.low == g.high %}{{ "{:,}".format(g.target) }}
+                                            {% else %}{{ "{:,}".format(g.low) }}–{{ "{:,}".format(g.high) }}{% endif %}
+                                            <small>kcal</small>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </li>
+                </ol>
+            {% else %}
+                {# Before calculating: a short explanation of the formulas #}
+                <div class="explainer">
+                    <h3>How it works</h3>
+                    <p><strong>1. BMR</strong> (Mifflin-St Jeor equation)</p>
+                    <code>Men: 10 × kg + 6.25 × cm − 5 × age + 5</code>
+                    <code>Women: 10 × kg + 6.25 × cm − 5 × age − 161</code>
+                    <p><strong>2. TDEE</strong> = BMR × activity multiplier (1.2 – 1.9)</p>
+                    <p><strong>3. Goal calories</strong> = TDEE adjusted for your goal</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<div class="calc-pair">
+
+    {# ========== 2. BMI ========== #}
+    {% set v = submitted if chosen == 'bmi' else defaults %}
+
+    <section class="card calc-card" id="bmi">
+        <div class="calc-head">
+            <h2>BMI</h2>
+            <p>Body Mass Index = weight (kg) ÷ height (m)²</p>
+        </div>
+
+        <form method="GET" action="{{ url_for('calculators') }}#bmi" class="calc-form">
+            <input type="hidden" name="calculator" value="bmi">
+            {{ error_box('bmi') }}
+            <div class="form-grid">
+                {{ number_field('height_cm', 'Height', 'cm', v) }}
+                {{ number_field('weight_kg', 'Weight', 'kg', v) }}
+            </div>
+            <button type="submit" class="button">Calculate BMI</button>
+        </form>
+
+        {% if chosen == 'bmi' and result %}
+            {# Where the marker sits on the coloured scale: BMI 15 = 0%, BMI 40 = 100%, kept inside 0–100 #}
+            {% set position = [[(result.bmi - 15) / 25 * 100, 0] | max, 100] | min %}
+            <div class="calc-result">
+                <div class="result-headline">
+                    <strong>{{ result.bmi }}</strong>
+                    <span class="badge-{{ result.category | lower | replace(' ', '-') }}">{{ result.category }}</span>
+                </div>
+                <div class="bmi-scale" aria-hidden="true">
+                    <div class="bmi-bands">
+                        <span class="band under"></span><span class="band healthy"></span>
+                        <span class="band over"></span><span class="band obese"></span>
+                    </div>
+                    <span class="bmi-marker" style="left: {{ position | round(1) }}%"></span>
+                    <div class="bmi-ticks"><span>15</span><span>18.5</span><span>25</span><span>30</span><span>40</span></div>
+                </div>
+            </div>
+        {% endif %}
+
+        <aside class="note">
+            <strong>BMI is a screening measurement, not a diagnosis.</strong>
+            It only uses height and weight, so it can't tell muscle from fat. A muscular
+            person can be "Overweight" by BMI while having low body fat, and BMI says
+            nothing about where fat is stored.
+        </aside>
+    </section>
+
+    {# ========== 3. Body fat (U.S. Navy method) ========== #}
+    {% set v = submitted if chosen == 'body_fat' else defaults %}
+
+    <section class="card calc-card" id="body-fat">
+        <div class="calc-head">
+            <h2>Body fat <span class="tag tag-muted">Estimate</span></h2>
+            <p>U.S. Navy tape-measure method</p>
+        </div>
+
+        <form method="GET" action="{{ url_for('calculators') }}#body-fat" class="calc-form">
+            <input type="hidden" name="calculator" value="body_fat">
+            {{ error_box('body_fat') }}
+            <div class="form-grid">
+                {{ sex_field(v) }}
+                {{ number_field('height_cm', 'Height', 'cm', v) }}
+                {{ number_field('neck_cm', 'Neck', 'cm', v) }}
+                {{ number_field('waist_cm', 'Waist', 'cm', v) }}
+                {# The hip box only appears when Female is selected (script.js) #}
+                <div class="field-slot" data-show-for="female">
+                    {{ number_field('hip_cm', 'Hip (women only)', 'cm', v, required=False) }}
+                </div>
+            </div>
+            <button type="submit" class="button">Estimate body fat</button>
+        </form>
+
+        {% if chosen == 'body_fat' and result %}
+            <div class="calc-result">
+                <div class="result-headline">
+                    <strong>≈ {{ result.body_fat }}<small>%</small></strong>
+                    <span class="badge-neutral">{{ result.category }}</span>
+                </div>
+            </div>
+        {% endif %}
+
+        <aside class="note">
+            <strong>This is an estimate.</strong> Tape-measure formulas can be several
+            percentage points away from a DEXA scan. Measure the same way each time and
+            watch the trend, not one reading.
+            <span class="note-tips">Neck: just below the Adam's apple · Waist: men at the navel,
+            women at the narrowest point · Hip: widest point of the buttocks.</span>
+        </aside>
+    </section>
+</div>
+{% endblock %}

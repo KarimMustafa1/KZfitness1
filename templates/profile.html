@@ -1,0 +1,104 @@
+{#
+    profile.html  (route: /profile)
+    The form for age, sex, height, weight, activity level and goal.
+    These values decide the daily calorie and macro targets.
+    "form" holds the saved values, or what was typed if the form had errors.
+#}
+{% extends "base.html" %}
+
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Your profile</h1>
+        <p class="page-sub">Your details set your daily calorie and macro targets.</p>
+    </div>
+</header>
+
+{# novalidate turns off the browser's own pop-ups. Instead, script.js marks any invalid
+   field before sending, and the server sends back the error messages. #}
+<form method="POST" action="{{ url_for('profile') }}" class="card profile-form" id="profile-form" novalidate>
+
+    {# ---------- About you ---------- #}
+    <fieldset>
+        <legend>About you</legend>
+        <div class="form-grid">
+            <label class="field field-wide">
+                <span>Name</span>
+                <input type="text" name="name" value="{{ form.get('name', '') }}" maxlength="80" required>
+            </label>
+
+            <label class="field">
+                <span>Age</span>
+                <input type="number" name="age" value="{{ form.get('age', '') }}" min="{{ limits.age[0] }}" max="{{ limits.age[1] }}" required>
+            </label>
+
+            {# Two radio buttons styled as one switch #}
+            <div class="field">
+                <span>Sex</span>
+                <div class="segmented">
+                    {% for value, label in sex_choices.items() %}
+                        <label>
+                            <input type="radio" name="sex" value="{{ value }}"
+                                   {% if form.get('sex') == value %}checked{% endif %} required>
+                            <span>{{ label }}</span>
+                        </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <label class="field">
+                <span>Height</span>
+                <div class="input-unit">
+                    <input type="number" name="height_cm" value="{{ form.get('height_cm', '') }}" min="{{ limits.height_cm[0] }}" max="{{ limits.height_cm[1] }}" step="0.1" required>
+                    <em>cm</em>
+                </div>
+            </label>
+
+            <label class="field">
+                <span>Weight</span>
+                <div class="input-unit">
+                    <input type="number" name="weight_kg" value="{{ form.get('weight_kg', '') }}" min="{{ limits.weight_kg[0] }}" max="{{ limits.weight_kg[1] }}" step="0.1" required>
+                    <em>kg</em>
+                </div>
+            </label>
+        </div>
+    </fieldset>
+
+    {# ---------- Activity level ---------- #}
+    <fieldset>
+        <legend>Activity level</legend>
+        <label class="field field-wide">
+            <select name="activity_level" required>
+                <option value="" disabled {% if not form.get('activity_level') %}selected{% endif %}>Choose your activity level</option>
+                {% for value, label in activity_choices.items() %}
+                    <option value="{{ value }}" {% if form.get('activity_level') == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </fieldset>
+
+    {# ---------- Goal: three cards, each a radio button ---------- #}
+    <fieldset>
+        <legend>Goal</legend>
+        <div class="goal-options">
+            {% for value, label in goal_choices.items() %}
+                <label class="goal-option">
+                    <input type="radio" name="goal" value="{{ value }}"
+                           {% if form.get('goal') == value %}checked{% endif %} required>
+                    <span class="goal-box">
+                        <strong>{{ label }}</strong>
+                        <small>{{ goal_hints[value] }}</small>
+                    </span>
+                </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
+    <div class="form-actions">
+        <a href="{{ url_for('dashboard') }}" class="button button-ghost">Cancel</a>
+        <button type="submit" class="button">Save profile</button>
+    </div>
+</form>
+{% endblock %}

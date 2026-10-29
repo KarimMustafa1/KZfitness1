@@ -1,0 +1,23 @@
+{#
+    placeholder.html
+    A simple "coming soon" page for sections that aren't built yet.
+    Needs:  page  with a title and a description
+#}
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }}{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>{{ page.title }}</h1>
+        <p class="page-sub">Coming soon.</p>
+    </div>
+</header>
+
+<section class="card empty-state">
+    <span class="soon soon-large">In development</span>
+    <p>{{ page.description }}</p>
+    <a href="{{ url_for('dashboard') }}" class="button button-ghost">Back to dashboard</a>
+</section>
+{% endblock %}

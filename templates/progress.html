@@ -1,0 +1,185 @@
+{#
+    progress.html  (route: /progress)
+    Summary stats, then three charts: body weight, calories eaten, and strength for one exercise.
+    The numbers for the charts are put on the page as JSON (see the scripts block),
+    and progress.js draws them with Chart.js.
+#}
+{% extends "base.html" %}
+
+{% block title %}Progress{% endblock %}
+
+{# Shows a change with its sign: +1.2, −0.8 or 0 #}
+{% macro signed(value) -%}
+    {%- if value > 0.05 %}+{{ value | amount }}{% elif value < -0.05 %}−{{ (0 - value) | amount }}{% else %}0{% endif -%}
+{%- endmacro %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Progress</h1>
+        <p class="page-sub">Your weight, calories and strength over time.</p>
+    </div>
+    <nav class="chip-nav" aria-label="Jump to chart">
+        <a href="#weight">Weight</a>
+        <a href="#calories">Calories</a>
+        <a href="#strength">Strength</a>
+    </nav>
+</header>
+
+{# ---------- Summary stats ---------- #}
+<section class="stats progress-stats">
+    <div class="card stat">
+        <span class="stat-label">Starting weight</span>
+        {% if weight %}
+            <strong class="stat-value">{{ weight.start | amount }}<small> kg</small></strong>
+            <span class="stat-note">{{ weight.start_date.strftime('%d %b %Y') }}</span>
+        {% else %}
+            <strong class="stat-value">—</strong><span class="stat-note">No weigh-ins yet</span>
+        {% endif %}
+    </div>
+    <div class="card stat">
+        <span class="stat-label">Current weight</span>
+        {% if weight %}
+            <strong class="stat-value">{{ weight.current | amount }}<small> kg</small></strong>
+            <span class="stat-note">{{ weight.current_date.strftime('%d %b %Y') }}</span>
+        {% else %}
+            <strong class="stat-value">—</strong><span class="stat-note">Log your first below</span>
+        {% endif %}
+    </div>
+    <div class="card stat">
+        <span class="stat-label">Weight change</span>
+        {% if weight and weigh_in_count > 1 %}
+            <strong class="stat-value">{{ signed(weight.change) }}<small> kg</small></strong>
+            <span class="stat-note">since {{ weight.start_date.strftime('%d %b') }}</span>
+        {% else %}
+            <strong class="stat-value">—</strong><span class="stat-note">Needs 2 weigh-ins</span>
+        {% endif %}
+    </div>
+    <div class="card stat">
+        <span class="stat-label">Best recorded lift</span>
+        {# best is (date, weight, reps) for the exercise shown in the strength chart #}
+        {% if best %}
+            <strong class="stat-value">{{ best[1] | amount }}<small> kg × {{ best[2] }}</small></strong>
+            <span class="stat-note">{{ exercise.name }} · {{ best[0].strftime('%d %b') }}</span>
+        {% else %}
+            <strong class="stat-value">—</strong><span class="stat-note">No workouts yet</span>
+        {% endif %}
+    </div>
+</section>
+
+{# ---------- Body weight: chart, weigh-in form and the last 5 weigh-ins ---------- #}
+<section class="card chart-card" id="weight">
+    <div class="chart-head">
+        <h2 class="card-title">Body weight</h2>
+        <span class="muted">One weigh-in per day</span>
+    </div>
+
+    <div class="weight-layout">
+        <div>
+            {% if weigh_in_count >= 1 %}
+                <div class="chart-box"><canvas id="weight-chart" role="img" aria-label="Line chart of body weight over time"></canvas></div>
+                {% if weigh_in_count < min_points %}
+                    <p class="chart-note">Add another weigh-in on a different day to see a trend.</p>
+                {% endif %}
+            {% else %}
+                <div class="chart-empty">Your weight chart will appear here after your first weigh-in.</div>
+            {% endif %}
+        </div>
+
+        <div class="weight-side">
+            <form method="POST" action="{{ url_for('log_weight') }}" class="calc-form">
+                <div class="form-grid">
+                    <label class="field">
+                        <span>Weight</span>
+                        <div class="input-unit">
+                            <input type="number" name="weight_kg" value="{{ form.get('weight_kg', '') }}"
+                                   min="{{ limits.weight_kg[0] }}" max="{{ limits.weight_kg[1] }}" step="any" required>
+                            <em>kg</em>
+                        </div>
+                    </label>
+                    <label class="field">
+                        <span>Date</span>
+                        <input type="date" name="logged_on" value="{{ form.get('logged_on', today) }}" max="{{ today }}" required>
+                    </label>
+                </div>
+                <button type="submit" class="button">Save weigh-in</button>
+                <small class="field-hint">Saving again on the same date replaces that day's weight.</small>
+            </form>
+
+            {% if recent_weigh_ins %}
+                <ul class="weigh-in-list">
+                    {% for entry in recent_weigh_ins %}
+                        <li>
+                            <span>{{ entry.logged_on.strftime('%a %d %b') }}</span>
+                            <strong>{{ entry.weight_kg | amount }} kg</strong>
+                            <form method="POST" action="{{ url_for('delete_weigh_in', entry_id=entry.id) }}"
+                                  data-confirm="Delete the weigh-in on {{ entry.logged_on.strftime('%d %b') }}?">
+                                <button type="submit" class="icon-button" aria-label="Delete weigh-in on {{ entry.logged_on.strftime('%d %b') }}">×</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{# ---------- Calories eaten per day ---------- #}
+<section class="card chart-card" id="calories">
+    <div class="chart-head">
+        <h2 class="card-title">Calories eaten</h2>
+        <span class="muted">Last {{ calorie_chart_days }} days{% if chart_data.calories.target %} · dashed line = daily target{% endif %}</span>
+    </div>
+    {% if calorie_days >= min_points %}
+        <div class="chart-box"><canvas id="calorie-chart" role="img" aria-label="Line chart of daily calories eaten"></canvas></div>
+    {% else %}
+        <div class="chart-empty">
+            Log food on at least {{ min_points }} different days to see this chart
+            ({{ calorie_days }} so far). <a href="{{ url_for('food') }}" class="text-link">Log food</a>
+        </div>
+    {% endif %}
+</section>
+
+{# ---------- Strength for one exercise ---------- #}
+<section class="card chart-card" id="strength">
+    <div class="chart-head">
+        <h2 class="card-title">Strength</h2>
+        {% if exercises %}
+            {# Only exercises that have workouts are listed #}
+            <form method="GET" action="{{ url_for('progress') }}#strength" class="filter-form">
+                <label class="sr-only" for="strength-exercise">Exercise</label>
+                <select name="exercise" id="strength-exercise" data-auto-submit>
+                    {% for option in exercises %}
+                        <option value="{{ option.id }}" {% if exercise and option.id == exercise.id %}selected{% endif %}>{{ option.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="button button-ghost">Show</button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if exercise %}
+        <p class="chart-note chart-note-top">
+            Solid line: heaviest weight lifted each day. Dashed line: estimated 1RM, an
+            <strong>estimate</strong> (weight × (1 + reps ÷ 30)).
+        </p>
+        <div class="chart-box"><canvas id="strength-chart" role="img" aria-label="Line chart of {{ exercise.name }} progress"></canvas></div>
+        {% if chart_data.strength.labels | length < min_points %}
+            <p class="chart-note">Log {{ exercise.name }} on another day to see your progress line.</p>
+        {% endif %}
+    {% else %}
+        <div class="chart-empty">
+            No workouts yet. <a href="{{ url_for('workout') }}" class="text-link">Log a workout</a> to see your strength progress.
+        </div>
+    {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+    {# 1. The chart numbers, as JSON that progress.js reads #}
+    <script id="chart-data" type="application/json">{{ chart_data | tojson }}</script>
+    {# 2. Chart.js, the library that draws the charts (saved in static/vendor) #}
+    <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+    {# 3. Our code that turns the numbers into charts #}
+    <script src="{{ url_for('static', filename='progress.js') }}"></script>
+{% endblock %}

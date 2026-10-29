@@ -1,0 +1,1060 @@
+/* =====================================================================
+   KZfitness stylesheet
+   One file for the whole app, written in plain CSS (no framework).
+
+   Contents
+    1. Design tokens (colours, fonts, spacing) and the dark theme
+    2. Base styles
+    3. Layout: sidebar and main area
+    4. Page header
+    5. Shared components: cards, buttons, tags, messages, notes
+    6. Forms
+    7. Progress bars and nutrient colours
+    8. Calorie ring
+    9. Dashboard
+   10. Food page
+   11. Workout page
+   12. Progress page
+   13. Calculators page
+   14. AI Coach page
+   15. Profile page
+   16. Smaller screens (tablets and phones)
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   1. Design tokens
+   Every colour, font and spacing value is a variable defined here once,
+   so the rest of the file uses var(--name). Light theme values first.
+   Nutrient colours come from gym weight plates: protein blue, carbs yellow,
+   fat red, and green for calories and main buttons.
+   --------------------------------------------------------------------- */
+:root {
+    --bg: #f3f5f7;
+    --surface: #ffffff;
+    --surface-2: #f7f8fa;
+    --ink: #161a21;
+    --muted: #596273;
+    --line: #e2e6eb;
+    --line-strong: #cdd3db;
+    --track: #e8ebef;
+
+    --green: #15824a;
+    --green-strong: #0f6b3c;
+    --green-soft: #e3f3ea;
+    --on-green: #ffffff;
+    --blue: #2463d1;
+    --blue-soft: #e5eefc;
+    --yellow: #e2a800;
+    --yellow-soft: #fcf3d6;
+    --amber-text: #8a5d00;
+    --red: #d23a2c;
+    --red-strong: #a8261a;
+    --red-soft: #fce7e4;
+    --focus: #2463d1;
+
+    --font-body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-display: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --space-7: 48px;
+
+    --radius: 16px;
+    --radius-small: 10px;
+    --radius-pill: 999px;
+    --shadow: 0 1px 2px rgba(22, 26, 33, 0.04), 0 8px 24px rgba(22, 26, 33, 0.06);
+
+    --sidebar-width: 240px;
+    --tabbar-height: 64px;
+}
+
+/* Dark theme: the same variables with darker values. The <html> element gets
+   data-theme="dark" from the script in base.html or the theme switch. */
+[data-theme="dark"] {
+    color-scheme: dark;
+
+    --bg: #0f1216;
+    --surface: #171b21;
+    --surface-2: #1e232b;
+    --ink: #e9ecf1;
+    --muted: #a1aab8;
+    --line: #2a3039;
+    --line-strong: #3a424e;
+    --track: #262c35;
+
+    --green: #3cc07a;
+    --green-strong: #5ad192;
+    --green-soft: rgba(60, 192, 122, 0.14);
+    --on-green: #0b130e;
+    --blue: #6c9bf2;
+    --blue-soft: rgba(108, 155, 242, 0.15);
+    --yellow: #f2c434;
+    --yellow-soft: rgba(242, 196, 52, 0.12);
+    --amber-text: #f2c434;
+    --red: #f07062;
+    --red-strong: #f59a90;
+    --red-soft: rgba(240, 112, 98, 0.14);
+    --focus: #6c9bf2;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------------------------------------------------------------------
+   2. Base styles
+   --------------------------------------------------------------------- */
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.55;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+h1 { font-size: 2.125rem; font-weight: 700; }
+h2 { font-size: 1.1875rem; font-weight: 600; }
+h3 { font-size: 1rem; font-weight: 600; }
+
+p { margin: 0; }
+a { color: inherit; }
+strong { font-weight: 600; }
+
+/* Numbers: every digit the same width, so columns of numbers line up */
+.big-number, .stat-value, .step-value, .log-kcal, .e1rm,
+.progress-numbers, .mini-stats dd, .preview-item strong, .ring-label strong {
+    font-variant-numeric: tabular-nums;
+}
+
+.icon { width: 20px; height: 20px; flex-shrink: 0; }
+.muted { color: var(--muted); }
+.small { font-size: 0.875rem; }
+
+/* Clear outline when moving around with the keyboard */
+:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: 6px;
+}
+
+[hidden] { display: none !important; }
+
+/* Hidden on screen but still read out by screen readers */
+.sr-only {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* No animations for people who turn on "reduce motion" on their device */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+
+/* ---------------------------------------------------------------------
+   3. Layout: sidebar and main area
+   --------------------------------------------------------------------- */
+.layout { min-height: 100vh; }
+
+.main {
+    margin-left: var(--sidebar-width);
+    padding: var(--space-6) var(--space-6) var(--space-7);
+    max-width: calc(1180px + var(--sidebar-width));
+}
+
+/* Fixed to the left edge on desktop (it slides in on phones, see section 16) */
+.sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-5) var(--space-4);
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    z-index: 30;
+    transition: transform 0.25s ease;
+}
+
+/* Logo: weight-plate mark and name */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0 var(--space-3) var(--space-5);
+    text-decoration: none;
+}
+.brand-mark { width: 32px; height: 32px; flex-shrink: 0; }
+.plate-outer { fill: var(--green); }
+.plate-ring { fill: none; stroke: var(--on-green); stroke-opacity: 0.35; stroke-width: 1.5; }
+.plate-hub { fill: var(--surface); }
+.brand-name { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
+
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 10px var(--space-3);
+    border-radius: var(--radius-small);
+    color: var(--muted);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+.nav-link:hover { background: var(--surface-2); color: var(--ink); }
+.nav-link.active { background: var(--green-soft); color: var(--green-strong); }
+
+.sidebar-footer {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-3);
+    padding: 0 var(--space-3);
+    font-size: 0.8125rem;
+    color: var(--muted);
+}
+
+/* Light/dark switch */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px var(--space-3);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.theme-toggle:hover { background: var(--surface-2); }
+.theme-toggle > span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.theme-toggle .icon { width: 18px; height: 18px; }
+
+/* Only show the option you can switch to */
+[data-theme="dark"] .when-light,
+:root:not([data-theme="dark"]) .when-dark { display: none; }
+
+/* Phone-only parts, hidden on desktop */
+.topbar, .tabbar, .overlay { display: none; }
+
+/* ---------------------------------------------------------------------
+   4. Page header
+   Title on the left, buttons or a status pill on the right.
+   --------------------------------------------------------------------- */
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+.page-sub { margin-top: var(--space-1); color: var(--muted); max-width: 62ch; }
+.header-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+.status-pill {
+    padding: 6px 14px;
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    font-weight: 600;
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+.status-pill.on { background: var(--green-soft); border-color: transparent; color: var(--green-strong); }
+
+/* Small rounded links that jump to a section of the page */
+.chip-nav { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.chip-nav a {
+    padding: 6px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+.chip-nav a:hover { border-color: var(--green); color: var(--green-strong); }
+
+/* ---------------------------------------------------------------------
+   5. Shared components
+   --------------------------------------------------------------------- */
+
+/* Card: the white (or dark) box every section sits in */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: var(--space-5);
+}
+.card-head, .card-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+.card-title { margin-bottom: var(--space-4); }
+.card-head .card-title, .card-title-row .card-title { margin-bottom: 0; }
+.card-head .muted { font-size: 0.875rem; }
+
+/* Green text links */
+.text-link {
+    color: var(--green-strong);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    text-decoration: none;
+}
+.text-link:hover { text-decoration: underline; }
+
+/* Buttons: green by default, .button-ghost is the outlined version */
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: 10px 20px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-small);
+    background: var(--green);
+    color: var(--on-green);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+}
+.button:hover { background: var(--green-strong); }
+.button-ghost { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
+.button-ghost:hover { background: var(--surface-2); border-color: var(--muted); }
+.button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Small × buttons for deleting */
+.icon-button {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: var(--radius-small);
+    background: transparent;
+    color: var(--muted);
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.icon-button:hover { background: var(--red-soft); color: var(--red-strong); }
+
+/* Tags and coloured words, e.g. "Custom", "Your goal", BMI categories */
+.tag {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: var(--radius-pill);
+    background: var(--green-soft);
+    color: var(--green-strong);
+    font-size: 0.75rem;
+    font-weight: 600;
+    vertical-align: middle;
+}
+.tag-muted { background: var(--yellow-soft); color: var(--amber-text); }
+
+.badge-healthy-weight, .badge-neutral { color: var(--green-strong); font-weight: 600; }
+.badge-underweight, .badge-overweight { color: var(--amber-text); font-weight: 600; }
+.badge-obese { color: var(--red-strong); font-weight: 600; }
+
+/* Messages after saving or deleting (green = done, red = problem) */
+.flash-stack { display: flex; flex-direction: column; gap: var(--space-2); margin-bottom: var(--space-5); }
+.flash {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-small);
+    font-weight: 600;
+    transition: opacity 0.4s;
+}
+.flash-success { background: var(--green-soft); color: var(--green-strong); }
+.flash-error { background: var(--red-soft); color: var(--red-strong); }
+.flash.fade { opacity: 0; }
+
+/* List of problems with a form */
+.form-errors {
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-small);
+    background: var(--red-soft);
+    color: var(--red-strong);
+}
+.form-errors ul { margin: var(--space-1) 0 0; padding-left: 18px; }
+
+/* Yellow note boxes for estimates and safety notes */
+.note {
+    padding: var(--space-3) var(--space-4);
+    border-left: 3px solid var(--yellow);
+    border-radius: 0 var(--radius-small) var(--radius-small) 0;
+    background: var(--yellow-soft);
+    font-size: 0.9375rem;
+}
+.note-tips { display: block; margin-top: var(--space-2); color: var(--muted); }
+
+/* Messages shown when there's nothing to display yet */
+.empty-state {
+    max-width: 560px;
+    margin: 10vh auto 0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-7) var(--space-6);
+}
+.empty-state p { color: var(--muted); }
+.empty-note { color: var(--muted); }
+.hint { margin-top: var(--space-4); font-size: 0.875rem; color: var(--muted); }
+.soon { font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+
+/* Formulas */
+code, pre {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+}
+code { display: block; color: var(--muted); margin-top: var(--space-1); overflow-wrap: anywhere; }
+
+/* ---------------------------------------------------------------------
+   6. Forms
+   --------------------------------------------------------------------- */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+.field-wide { grid-column: 1 / -1; }
+.field-hint { font-size: 0.8125rem; color: var(--muted); }
+
+/* All text, number and date boxes look the same */
+input[type="text"], input[type="number"], input[type="search"], input[type="date"],
+select, textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-small);
+    background: var(--surface-2);
+    color: var(--ink);
+    font: inherit;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--green);
+    background: var(--surface);
+    box-shadow: 0 0 0 3px var(--green-soft);
+}
+
+/* Added by script.js when a profile field is invalid */
+input.invalid { border-color: var(--red); }
+::placeholder { color: var(--muted); opacity: 0.8; }
+
+/* A unit (cm, kg, g) shown inside the right edge of a number box */
+.input-unit { position: relative; }
+.input-unit input { padding-right: 56px; }
+.input-unit em {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-style: normal;
+    font-weight: 600;
+    color: var(--muted);
+    pointer-events: none;
+}
+
+/* Two fields per row (three for weight / reps / sets) */
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.form-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.form-actions { display: flex; justify-content: flex-end; gap: var(--space-3); }
+.calc-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.calc-form > .button { align-self: flex-start; }
+
+/* Two radio buttons that look like one switch (Male / Female).
+   The real radio button is invisible; the <span> next to it is what you see. */
+.segmented {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    padding: 4px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-small);
+    background: var(--surface-2);
+}
+.segmented input, .goal-option input { position: absolute; opacity: 0; pointer-events: none; }
+.segmented span {
+    display: block;
+    padding: 7px;
+    border-radius: 7px;
+    text-align: center;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+}
+.segmented input:checked + span { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
+.segmented input:focus-visible + span { outline: 3px solid var(--focus); }
+
+/* Goal cards on the Profile page, built the same way */
+.goal-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); }
+.goal-box {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    height: 100%;
+    padding: var(--space-4);
+    border: 2px solid var(--line);
+    border-radius: var(--radius-small);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+}
+.goal-box small { color: var(--muted); }
+.goal-box:hover { border-color: var(--line-strong); }
+.goal-option input:checked + .goal-box { border-color: var(--green); background: var(--green-soft); }
+.goal-option input:focus-visible + .goal-box { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------------
+   7. Progress bars and nutrient colours
+   Used on the Dashboard, Food and AI Coach pages (_progress_bars.html).
+   --------------------------------------------------------------------- */
+.progress-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
+.progress-top { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); margin-bottom: 6px; }
+.progress-name { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; }
+.progress-numbers { color: var(--muted); font-size: 0.875rem; white-space: nowrap; }
+.progress-numbers strong { color: var(--ink); font-family: var(--font-display); font-size: 1.125rem; }
+.progress-track { height: 10px; border-radius: var(--radius-pill); background: var(--track); overflow: hidden; }
+.progress-fill { display: block; height: 100%; border-radius: var(--radius-pill); transition: width 0.6s ease; }
+.progress-left { display: block; margin-top: 4px; font-size: 0.8125rem; color: var(--muted); }
+.progress-row.is-over .progress-left { color: var(--red-strong); font-weight: 600; }
+
+/* One colour per nutrient, for the small square and the bar */
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.dot.calories, .progress-fill.calories { background: var(--green); }
+.dot.protein, .progress-fill.protein { background: var(--blue); }
+.dot.carbs, .progress-fill.carbs { background: var(--yellow); }
+.dot.fat, .progress-fill.fat { background: var(--red); }
+
+/* ---------------------------------------------------------------------
+   8. Calorie ring
+   An SVG circle with radius 52, so its outline is 2 × π × 52 ≈ 326.7 long.
+   stroke-dasharray turns the outline into one dash of that length, and
+   stroke-dashoffset hides part of it. Starting at 326.7 hides all of it;
+   script.js lowers the offset to show the percentage eaten.
+   rotate(-90deg) makes the ring start at the top instead of the right.
+   --------------------------------------------------------------------- */
+.ring { position: relative; width: 176px; height: 176px; flex-shrink: 0; }
+.ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 11; }
+.ring-track { stroke: var(--track); }
+.ring-fill {
+    stroke: var(--green);
+    stroke-linecap: round;
+    stroke-dasharray: 326.7;
+    stroke-dashoffset: 326.7;
+    transition: stroke-dashoffset 1s ease;
+}
+.ring.is-over .ring-fill { stroke: var(--red); }
+
+/* The number in the middle of the ring */
+.ring-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.ring-label strong { font-family: var(--font-display); font-size: 2.25rem; font-weight: 700; line-height: 1; }
+.ring-label span { margin-top: 4px; font-size: 0.875rem; color: var(--muted); }
+
+/* ---------------------------------------------------------------------
+   9. Dashboard
+   A 12-column grid: Today takes 8 columns, most cards 4, and "Your numbers" the full width.
+   --------------------------------------------------------------------- */
+.dash-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-5);
+}
+.today-card { grid-column: span 8; box-shadow: var(--shadow); }
+.coach-card { grid-column: span 4; }
+.weight-card { grid-column: span 4; }
+.workouts-card { grid-column: span 4; }
+.week-card { grid-column: span 4; }
+.numbers-card { grid-column: span 12; }
+
+.today-body {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: center;
+}
+.today-calories { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+.mini-stats { display: flex; gap: var(--space-5); margin: 0; text-align: center; }
+.mini-stats dt { font-size: 0.8125rem; color: var(--muted); }
+.mini-stats dd { margin: 0; font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; }
+
+/* Coach, weight, recent workouts and this week */
+.coach-card { display: flex; flex-direction: column; gap: var(--space-3); }
+.coach-card .card-head { margin-bottom: 0; }
+.coach-card > .button { align-self: flex-start; }
+
+.big-number { font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; line-height: 1.1; }
+.big-number small { font-size: 1.125rem; font-weight: 600; color: var(--muted); }
+.change { margin: var(--space-1) 0 var(--space-3); color: var(--muted); font-size: 0.9375rem; }
+
+.chart-box.chart-mini { height: 110px; margin-top: auto; }
+.weight-card, .week-card { display: flex; flex-direction: column; }
+
+.recent-list { list-style: none; margin: 0; padding: 0; }
+.recent-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+}
+.recent-list li:first-child { padding-top: 0; }
+.recent-list li:last-child { border-bottom: none; padding-bottom: 0; }
+.recent-list strong { display: block; }
+.recent-list .muted { font-size: 0.875rem; }
+.recent-list time { white-space: nowrap; }
+
+/* This week: a row of 7 day boxes for training and one for food */
+.week-grid { display: flex; flex-direction: column; gap: 6px; }
+.week-row { display: grid; grid-template-columns: 92px repeat(7, minmax(0, 28px)); gap: 6px; align-items: center; }
+.week-label { font-size: 0.8125rem; color: var(--muted); }
+.day-box { aspect-ratio: 1; border-radius: 5px; background: var(--track); }
+.day-box.train.done { background: var(--ink); }
+.day-box.food.done { background: var(--green); }
+.day-box.future { background: transparent; border: 1px dashed var(--line-strong); }
+.week-letters span { text-align: center; font-size: 0.75rem; color: var(--muted); }
+.week-letters .today { color: var(--ink); font-weight: 700; }
+.week-summary { margin-top: auto; padding-top: var(--space-4); font-size: 0.875rem; color: var(--muted); }
+
+/* Your numbers: as many columns as fit */
+.numbers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: var(--space-4) var(--space-5);
+    margin: 0 0 var(--space-4);
+}
+.numbers dt { font-size: 0.8125rem; color: var(--muted); }
+.numbers dd { margin: 2px 0 0; font-weight: 600; }
+.numbers .range { display: block; font-size: 0.875rem; font-weight: 400; }
+
+/* ---------------------------------------------------------------------
+   10. Food page
+   --------------------------------------------------------------------- */
+.food-progress { margin-bottom: var(--space-5); }
+.food-progress .progress-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-5); }
+.coach-link { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--line); color: var(--muted); }
+
+.food-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+.food-column { display: flex; flex-direction: column; gap: var(--space-5); }
+#add { scroll-margin-top: var(--space-5); }
+
+/* Search and results */
+.search-form { display: flex; gap: var(--space-2); }
+.search-form input { flex: 1; min-width: 0; }
+
+.results-label { margin: var(--space-5) 0 var(--space-2); font-size: 0.875rem; font-weight: 600; }
+.results-label .muted { font-weight: 400; }
+
+.food-results { list-style: none; margin: 0; padding: 0; }
+.food-result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-3);
+    margin: 0 calc(-1 * var(--space-3));
+    padding: var(--space-3);
+    border-radius: var(--radius-small);
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+}
+.food-results li:last-child .food-result { border-bottom: none; }
+.food-result:hover { background: var(--surface-2); }
+.food-result.is-selected { background: var(--green-soft); border-bottom-color: transparent; }
+.food-name { font-weight: 600; }
+.food-name .tag { margin-left: 6px; }
+.food-macros { text-align: right; font-size: 0.8125rem; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.food-macros strong { display: block; color: var(--ink); font-size: 0.9375rem; }
+
+/* The selected food: amount box and live preview */
+.selected-food {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-top: var(--space-4);
+    padding: var(--space-4);
+    border: 2px solid var(--green);
+    border-radius: var(--radius-small);
+    background: var(--green-soft);
+}
+.selected-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.selected-head strong { display: block; font-family: var(--font-display); font-size: 1.25rem; }
+.amount-row { display: flex; align-items: flex-end; gap: var(--space-3); }
+.amount-row .field { flex: 1; max-width: 200px; }
+.preview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-2); }
+.preview-item { padding: 10px; border-radius: var(--radius-small); background: var(--surface); text-align: center; }
+.preview-item strong { display: block; font-family: var(--font-display); font-size: 1.375rem; font-weight: 700; }
+.preview-item span { font-size: 0.8125rem; color: var(--muted); }
+
+/* Custom food form inside a <details> box that opens and closes */
+.custom-food summary { display: flex; flex-direction: column; gap: 2px; cursor: pointer; list-style: none; }
+.custom-food summary::-webkit-details-marker { display: none; }
+.custom-food summary .card-title { margin: 0; }
+.custom-food summary .card-title::before { content: "+ "; color: var(--green); }
+.custom-food[open] summary .card-title::before { content: "− "; }
+.custom-food summary .muted { font-size: 0.875rem; }
+.custom-food .calc-form { margin-top: var(--space-5); }
+
+/* Today's log and the total row */
+.log-list { list-style: none; margin: 0; padding: 0; }
+.log-item, .log-totals {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--line);
+}
+.log-main { display: flex; flex-direction: column; min-width: 0; }
+.log-main .muted { font-size: 0.8125rem; font-variant-numeric: tabular-nums; }
+.log-kcal { font-family: var(--font-display); font-size: 1.125rem; font-weight: 700; white-space: nowrap; }
+.log-kcal small { font-family: var(--font-body); font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+.log-totals { grid-template-columns: minmax(0, 1fr) auto; border-bottom: none; border-top: 2px solid var(--ink); margin-top: -1px; padding-right: 48px; }
+
+/* ---------------------------------------------------------------------
+   11. Workout page
+   --------------------------------------------------------------------- */
+.workout-layout { display: grid; grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr); gap: var(--space-5); align-items: start; }
+.workout-form-card { display: flex; flex-direction: column; gap: var(--space-5); }
+.workout-form-card .card-title { margin-bottom: 0; }
+.last-time { padding: 10px 14px; border-radius: var(--radius-small); background: var(--surface-2); font-size: 0.9375rem; }
+
+/* History header with the exercise filter */
+.history-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.history-head .card-title { margin: 0; }
+.filter-form { display: flex; gap: var(--space-2); }
+.filter-form select { width: auto; min-width: 190px; }
+
+/* Dark box with the best estimated 1RM */
+.best-lift {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: var(--space-3) 0 var(--space-1);
+    padding: var(--space-4) 18px;
+    border-radius: var(--radius-small);
+    background: var(--ink);
+    color: var(--surface);
+}
+.best-lift .step-label { color: inherit; opacity: 0.75; }
+.best-lift strong { font-family: var(--font-display); font-size: 2rem; font-weight: 700; color: var(--surface); }
+.best-lift strong small { font-size: 1rem; }
+.best-lift .muted { color: inherit; opacity: 0.75; font-size: 0.875rem; }
+
+/* Workouts grouped by day */
+.day-heading { margin: var(--space-5) 0 var(--space-1); font-family: var(--font-body); font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+.workout-list { list-style: none; margin: 0; padding: 0; }
+.workout-item { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--space-3); padding: var(--space-3) 0; border-bottom: 1px solid var(--line); }
+.workout-list .workout-item:last-child { border-bottom: none; }
+.workout-main { display: flex; flex-direction: column; min-width: 0; }
+.workout-name { font-weight: 600; text-decoration: none; }
+.workout-name:hover { color: var(--green-strong); text-decoration: underline; }
+.workout-main .muted { font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.e1rm { text-align: right; font-family: var(--font-display); font-size: 1.0625rem; font-weight: 700; white-space: nowrap; }
+.e1rm small { display: block; font-family: var(--font-body); font-size: 0.75rem; font-weight: 600; color: var(--muted); }
+
+/* ---------------------------------------------------------------------
+   12. Progress page
+   --------------------------------------------------------------------- */
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); }
+.progress-stats { margin-bottom: var(--space-5); }
+.stat { display: flex; flex-direction: column; gap: 2px; padding: var(--space-4) 20px; }
+.stat-label { font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+.stat-value { font-family: var(--font-display); font-size: 2rem; font-weight: 700; line-height: 1.15; }
+.stat-value small { font-family: var(--font-body); font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+.stat-note { font-size: 0.8125rem; color: var(--muted); }
+
+/* Chart cards */
+.chart-card { margin-bottom: var(--space-5); scroll-margin-top: var(--space-5); }
+.chart-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-4); }
+.chart-head .card-title { margin: 0; }
+.chart-head .muted { font-size: 0.875rem; }
+
+/* Chart.js fills its parent, so the parent needs a fixed height and position: relative */
+.chart-box { position: relative; height: 280px; }
+.chart-empty {
+    display: grid;
+    place-items: center;
+    min-height: 180px;
+    padding: var(--space-5);
+    border: 2px dashed var(--line);
+    border-radius: var(--radius-small);
+    color: var(--muted);
+    text-align: center;
+}
+.chart-note { margin-top: 10px; font-size: 0.875rem; color: var(--muted); }
+.chart-note-top { margin: -6px 0 var(--space-4); }
+
+/* Weight chart with the weigh-in form beside it */
+.weight-layout { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.weight-side { display: flex; flex-direction: column; gap: var(--space-4); }
+.weight-side .calc-form { gap: var(--space-3); }
+.weigh-in-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.weigh-in-list li { display: grid; grid-template-columns: 1fr auto 36px; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 0.9375rem; }
+.weigh-in-list span { color: var(--muted); }
+.weigh-in-list strong { font-variant-numeric: tabular-nums; }
+
+/* ---------------------------------------------------------------------
+   13. Calculators page
+   --------------------------------------------------------------------- */
+.calc-card { margin-bottom: var(--space-5); scroll-margin-top: var(--space-5); }
+.calc-head { margin-bottom: var(--space-5); }
+.calc-head h2 { display: flex; align-items: center; gap: 10px; }
+.calc-head p { margin-top: var(--space-1); color: var(--muted); font-size: 0.9375rem; }
+.calc-body-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: var(--space-6); align-items: start; }
+.calc-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+.calc-pair .calc-card { margin-bottom: 0; display: flex; flex-direction: column; gap: var(--space-5); }
+.calc-pair .calc-head { margin-bottom: 0; }
+
+/* Result area */
+.calc-output, .calc-result { padding: var(--space-5); border-radius: var(--radius-small); background: var(--surface-2); }
+.explainer h3 { margin-bottom: var(--space-3); }
+.explainer p { margin: var(--space-4) 0 6px; font-size: 0.9375rem; }
+.explainer p:first-of-type { margin-top: 0; }
+
+/* Calorie result as numbered steps */
+.steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+.steps > li { display: grid; grid-template-columns: 30px 1fr; gap: 14px; }
+.step-num {
+    display: grid; place-items: center;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: var(--surface);
+    font-weight: 700;
+    font-size: 0.875rem;
+}
+.step-label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+.step-value { display: block; font-family: var(--font-display); font-size: 1.75rem; font-weight: 700; line-height: 1.25; }
+.step-value small { font-family: var(--font-body); font-size: 0.875rem; color: var(--muted); font-weight: 600; }
+
+/* Calories for each goal (your goal highlighted) */
+.goal-table { width: 100%; border-collapse: collapse; margin-top: var(--space-2); }
+.goal-table th, .goal-table td { padding: 10px 12px; border-top: 1px solid var(--line); }
+.goal-table th { text-align: left; font-weight: 600; }
+.goal-table th small { display: block; font-weight: 400; color: var(--muted); font-size: 0.8125rem; }
+.goal-table td { text-align: right; font-family: var(--font-display); font-size: 1.0625rem; font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.goal-table td small { font-family: var(--font-body); font-size: 0.8125rem; color: var(--muted); font-weight: 600; }
+.goal-table tr.is-mine { background: var(--green-soft); }
+.goal-table tr.is-mine th, .goal-table tr.is-mine td { border-top-color: transparent; }
+
+/* Big BMI / body-fat number */
+.result-headline { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-3); }
+.result-headline strong { font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.result-headline strong small { font-size: 1.25rem; }
+
+/* BMI scale from 15 to 40. The band widths match the ranges
+   15–18.5, 18.5–25, 25–30 and 30–40 (3.5 : 6.5 : 5 : 10, times 4). */
+.bmi-scale { position: relative; margin-top: 22px; }
+.bmi-bands { display: grid; grid-template-columns: 14fr 26fr 20fr 40fr; gap: 3px; height: 10px; }
+.band { border-radius: var(--radius-pill); opacity: 0.55; }
+.band.under { background: var(--yellow); }
+.band.healthy { background: var(--green); }
+.band.over { background: var(--yellow); }
+.band.obese { background: var(--red); }
+.bmi-marker { position: absolute; top: -5px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: var(--ink); box-shadow: 0 0 0 2px var(--surface-2); }
+.bmi-ticks { display: grid; grid-template-columns: 14fr 26fr 20fr 40fr 0; margin-top: 6px; font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bmi-ticks span { width: max-content; transform: translateX(-50%); }
+.bmi-ticks span:first-child { transform: none; }
+.bmi-ticks span:last-child { transform: translateX(-100%); }
+
+/* ---------------------------------------------------------------------
+   14. AI Coach page
+   --------------------------------------------------------------------- */
+.today-strip { margin-bottom: var(--space-5); padding: 18px var(--space-5); }
+.today-strip .progress-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-5); }
+
+.coach-layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+.coach-main, .coach-side { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* The answer. pre-wrap keeps the line breaks in Claude's reply. */
+.answer-card { border-left: 4px solid var(--green); display: flex; flex-direction: column; gap: var(--space-4); }
+.asked { font-family: var(--font-display); font-size: 1.25rem; font-weight: 600; line-height: 1.3; }
+.asked .muted { display: block; font-family: var(--font-body); font-size: 0.875rem; font-weight: 600; }
+.answer-text { white-space: pre-wrap; max-width: 68ch; line-height: 1.65; }
+.answer-foot { padding-top: var(--space-3); border-top: 1px solid var(--line); font-size: 0.8125rem; color: var(--muted); }
+
+/* Question box and suggestion buttons */
+.ask-form { display: flex; flex-direction: column; gap: var(--space-3); }
+.ask-form textarea { resize: vertical; }
+.ask-actions { display: flex; align-items: center; gap: 14px; }
+.suggest-label { margin-top: var(--space-2); font-size: 0.875rem; font-weight: 600; }
+.suggestions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.suggestion {
+    padding: 7px 14px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.875rem;
+    text-align: left;
+    cursor: pointer;
+}
+.suggestion:hover:not(:disabled) { border-color: var(--green); color: var(--green-strong); }
+.suggestion:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* "The coach is thinking…" appears while the question is sent (script.js adds .is-waiting) */
+.thinking { display: none; color: var(--muted); font-weight: 600; }
+.ask-form.is-waiting .thinking { display: inline; }
+.ask-form.is-waiting button { opacity: 0.5; pointer-events: none; }
+
+/* "Shared with the coach" list */
+.coach-side .small { margin: calc(-1 * var(--space-2)) 0 var(--space-3); }
+.info-list { margin: 0 0 var(--space-3); }
+.info-list div { padding: var(--space-2) 0; border-bottom: 1px solid var(--line); }
+.info-list div:last-child { border-bottom: none; }
+.info-list dt { font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+.info-list dd { margin: 2px 0 0; font-size: 0.9375rem; }
+
+/* ---------------------------------------------------------------------
+   15. Profile page
+   --------------------------------------------------------------------- */
+.profile-form { max-width: 760px; padding: var(--space-6); }
+fieldset { border: none; margin: 0 0 var(--space-6); padding: 0; }
+legend { margin-bottom: 14px; padding: 0; font-family: var(--font-display); font-size: 1.1875rem; font-weight: 600; }
+
+/* ---------------------------------------------------------------------
+   16. Smaller screens
+   Three steps: under 1180px (laptops), under 960px (tablets), under 640px (phones).
+   --------------------------------------------------------------------- */
+
+/* Laptops: cards and two-column pages stack into fewer columns */
+@media (max-width: 1180px) {
+    .today-card, .numbers-card { grid-column: span 12; }
+    .coach-card, .weight-card, .workouts-card, .week-card { grid-column: span 6; }
+    .calc-body-split, .calc-pair, .food-layout, .workout-layout, .coach-layout { grid-template-columns: minmax(0, 1fr); }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .food-progress .progress-list, .today-strip .progress-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Tablets and phones: the sidebar becomes a slide-out menu,
+   and the top bar and bottom tab bar appear */
+@media (max-width: 960px) {
+    .main {
+        margin-left: 0;
+        padding: var(--space-5) var(--space-4) calc(var(--tabbar-height) + var(--space-6));
+    }
+
+    /* Sidebar moved off screen to the left; .open (script.js) slides it back */
+    .sidebar { transform: translateX(-100%); box-shadow: var(--shadow); }
+    .sidebar.open { transform: translateX(0); }
+    .overlay.open { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); z-index: 25; }
+
+    .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        padding: 10px var(--space-4);
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+    }
+    .topbar .brand { padding: 0; }
+    .topbar .brand-mark { width: 28px; height: 28px; }
+    .topbar-actions { display: flex; gap: var(--space-2); }
+    .topbar .theme-label { display: none; }
+    .topbar .theme-toggle { padding: 0; width: 40px; height: 40px; justify-content: center; }
+    .menu-button {
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-small);
+        background: transparent;
+        color: var(--ink);
+        cursor: pointer;
+    }
+
+    /* Bottom tab bar. env(safe-area-inset-bottom) leaves room for the iPhone home bar. */
+    .tabbar {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 20;
+        height: calc(var(--tabbar-height) + env(safe-area-inset-bottom));
+        padding-bottom: env(safe-area-inset-bottom);
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+    }
+    .tab {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .tab.active { color: var(--green-strong); }
+    .tab .icon { width: 22px; height: 22px; }
+
+    .dash-grid { gap: var(--space-4); }
+    .weight-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Phones: one column */
+@media (max-width: 640px) {
+    h1 { font-size: 1.75rem; }
+    .card { padding: 18px; }
+    .page-header { margin-bottom: var(--space-4); }
+    .header-actions { width: 100%; }
+    .header-actions .button { flex: 1; }
+
+    .coach-card, .weight-card, .workouts-card, .week-card { grid-column: span 12; }
+    .today-body { grid-template-columns: minmax(0, 1fr); gap: var(--space-5); }
+    .ring { width: 160px; height: 160px; }
+
+    .form-grid, .goal-options { grid-template-columns: minmax(0, 1fr); }
+    .form-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+    .form-grid-3 .input-unit input { padding-right: 36px; }
+    .form-grid-3 .input-unit em { right: 10px; }
+
+    .stats { gap: var(--space-3); }
+    .stat-value { font-size: 1.5rem; }
+    .food-progress .progress-list, .today-strip .progress-list { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+    .preview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .food-macros { font-size: 0.75rem; white-space: normal; }
+    .amount-row .field { max-width: none; }
+    .filter-form { width: 100%; }
+    .filter-form select { flex: 1; min-width: 0; }
+    .chart-box { height: 230px; }
+    .profile-form { padding: 20px; }
+    .page-header .chip-nav { width: 100%; }
+}

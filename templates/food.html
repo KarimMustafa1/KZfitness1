@@ -1,0 +1,190 @@
+{#
+    food.html  (route: /food)
+    Search the food list, pick a food and an amount, and add it to today's log.
+    Also: today's totals against the targets, and a form for adding a custom food.
+    Food values are stored per 100 g; the app scales them to the amount eaten.
+#}
+{% extends "base.html" %}
+
+{% block title %}Food{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Food</h1>
+        <p class="page-sub"><span id="today-date">Today</span>. Search for a food, choose an amount and add it to your log.</p>
+    </div>
+    <span class="status-pill">{{ totals.calories | amount(0) }} kcal eaten</span>
+</header>
+
+{# ---------- Today's progress (needs a profile for the targets) ---------- #}
+<section class="card food-progress">
+    {% if progress %}
+        {% include "_progress_bars.html" %}
+        {% if not progress.calories.over %}
+            <p class="coach-link">
+                Not sure what to eat next?
+                <a href="{{ url_for('coach', q='What should I eat with ' ~ (progress.calories.remaining | amount(0)) ~ ' kcal left today?') }}" class="text-link">Ask the coach</a>
+            </p>
+        {% endif %}
+    {% else %}
+        <p class="muted">
+            Eaten today: <strong>{{ totals.calories | amount(0) }} kcal</strong> ·
+            P {{ totals.protein | amount }} g · C {{ totals.carbs | amount }} g · F {{ totals.fat | amount }} g.
+            <a href="{{ url_for('profile') }}" class="text-link">Save your profile</a> to see your targets.
+        </p>
+    {% endif %}
+</section>
+
+<div class="food-layout">
+
+    <div class="food-column">
+
+        {# ---------- Add food: search, select, choose grams ---------- #}
+        <section class="card" id="add">
+            <h2 class="card-title">Add food</h2>
+
+            <form method="GET" action="{{ url_for('food') }}#add" class="search-form" role="search">
+                <input type="search" name="q" value="{{ search_text }}"
+                       placeholder="Search foods, e.g. chicken" aria-label="Search foods">
+                <button type="submit" class="button">Search</button>
+            </form>
+
+            {% if selected %}
+                <form method="POST" action="{{ url_for('add_food_to_log') }}" class="selected-food">
+                    <input type="hidden" name="food_id" value="{{ selected.id }}">
+
+                    <div class="selected-head">
+                        <div>
+                            <span class="step-label">Selected</span>
+                            <strong>{{ selected.name }}</strong>
+                        </div>
+                        <a href="{{ url_for('food', q=search_text or None) }}#add" class="text-link">Change</a>
+                    </div>
+
+                    <div class="amount-row">
+                        <label class="field">
+                            <span>Amount</span>
+                            <div class="input-unit">
+                                <input type="number" name="grams" id="grams" value="100"
+                                       min="{{ limits.grams[0] }}" max="{{ limits.grams[1] }}" step="any" required>
+                                <em>g</em>
+                            </div>
+                        </label>
+                        <button type="submit" class="button">Add to today</button>
+                    </div>
+
+                    {# Live preview. Each number keeps its per-100 g value in data-per100g,
+                       so script.js can recalculate it as the grams change. #}
+                    <div class="preview" id="food-preview">
+                        {% for key, label, decimals in [('calories', 'kcal', 0), ('protein', 'protein', 1), ('carbs', 'carbs', 1), ('fat', 'fat', 1)] %}
+                            <div class="preview-item">
+                                <strong data-per100g="{{ selected.per_100g[key] }}" data-decimals="{{ decimals }}">
+                                    {{- selected_preview[key] | amount(decimals) -}}
+                                </strong>
+                                <span>{% if key != 'calories' %}g {% endif %}{{ label }}</span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </form>
+            {% endif %}
+
+            {# Search results (or every food when nothing was searched) #}
+            <p class="results-label">
+                {% if search_text %}Results for "{{ search_text }}"{% else %}All foods{% endif %}
+                <span class="muted">· values per 100 g</span>
+            </p>
+
+            {% if results %}
+                <ul class="food-results">
+                    {% for food in results %}
+                        <li>
+                            <a href="{{ url_for('food', q=search_text or None, food_id=food.id) }}"
+                               class="food-result {% if selected and selected.id == food.id %}is-selected{% endif %}">
+                                <span class="food-name">
+                                    {{ food.name }}
+                                    {% if food.is_custom %}<span class="tag tag-muted">Custom</span>{% endif %}
+                                </span>
+                                <span class="food-macros">
+                                    <strong>{{ food.calories_per_100g | amount(0) }} kcal</strong>
+                                    P {{ food.protein_per_100g | amount }} · C {{ food.carbs_per_100g | amount }} · F {{ food.fat_per_100g | amount }}
+                                </span>
+                            </a>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p class="empty-note">No foods match "{{ search_text }}". You can add it as a custom food below.</p>
+            {% endif %}
+        </section>
+
+        {# ---------- Custom food (stays open if it had an error) ---------- #}
+        <section class="card">
+            <details class="custom-food" {% if custom_form %}open{% endif %}>
+                <summary>
+                    <span class="card-title">Add a custom food</span>
+                    <span class="muted">Copy the "per 100 g" column from a food label</span>
+                </summary>
+
+                <form method="POST" action="{{ url_for('add_custom_food') }}" class="calc-form">
+                    <label class="field">
+                        <span>Food name</span>
+                        <input type="text" name="name" value="{{ custom_form.get('name', '') }}" maxlength="100" required>
+                    </label>
+                    <div class="form-grid">
+                        {% for key, label, unit in [('calories', 'Calories', 'kcal'), ('protein', 'Protein', 'g'), ('carbs', 'Carbohydrates', 'g'), ('fat', 'Fat', 'g')] %}
+                            <label class="field">
+                                <span>{{ label }} per 100 g</span>
+                                <div class="input-unit">
+                                    <input type="number" name="{{ key }}" value="{{ custom_form.get(key, '') }}"
+                                           min="{{ limits[key][0] }}" max="{{ limits[key][1] }}" step="any" required>
+                                    <em>{{ unit }}</em>
+                                </div>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="button">Save food</button>
+                </form>
+            </details>
+        </section>
+    </div>
+
+    {# ---------- Today's log ---------- #}
+    <section class="card food-log">
+        <h2 class="card-title">Today's log</h2>
+
+        {% if entries %}
+            <ul class="log-list">
+                {% for entry in entries %}
+                    {% set n = entry.nutrients %}
+                    <li class="log-item">
+                        <div class="log-main">
+                            <strong>{{ entry.food.name }}</strong>
+                            <span class="muted">
+                                {{ entry.grams | amount }} g · P {{ n.protein | amount }} · C {{ n.carbs | amount }} · F {{ n.fat | amount }}
+                            </span>
+                        </div>
+                        <span class="log-kcal">{{ n.calories | amount(0) }} <small>kcal</small></span>
+                        {# Deleting uses POST, so a link or a page reload can't delete anything #}
+                        <form method="POST" action="{{ url_for('delete_food_entry', entry_id=entry.id) }}">
+                            <button type="submit" class="icon-button" aria-label="Remove {{ entry.food.name }}" title="Remove">×</button>
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+
+            <div class="log-totals">
+                <div class="log-main">
+                    <strong>Total</strong>
+                    <span class="muted">
+                        P {{ totals.protein | amount }} g · C {{ totals.carbs | amount }} g · F {{ totals.fat | amount }} g
+                    </span>
+                </div>
+                <span class="log-kcal">{{ totals.calories | amount(0) }} <small>kcal</small></span>
+            </div>
+        {% else %}
+            <p class="empty-note">Nothing logged yet today. Search for a food, choose an amount, and add it.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

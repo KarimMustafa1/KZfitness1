@@ -1,0 +1,159 @@
+{#
+    workout.html  (route: /workout)
+    Log an exercise with weight, reps, sets and date, and browse the history grouped by day.
+    Filtering by one exercise also shows the best estimated one-rep max (1RM) for it.
+#}
+{% extends "base.html" %}
+
+{% block title %}Workout{% endblock %}
+
+{% block content %}
+<header class="page-header">
+    <div>
+        <h1>Workout</h1>
+        <p class="page-sub">Log each exercise with its weight, reps and sets.</p>
+    </div>
+    <span class="status-pill">{{ workouts | length }} workout{{ 's' if workouts | length != 1 }}
+        {%- if selected_exercise %} · {{ selected_exercise.name }}{% endif %}</span>
+</header>
+
+<div class="workout-layout">
+
+    {# ---------- Log a workout ---------- #}
+    <section class="card workout-form-card">
+        <h2 class="card-title">Log a workout</h2>
+
+        <form method="POST" action="{{ url_for('add_workout') }}" class="calc-form">
+            <label class="field">
+                <span>Exercise</span>
+                {# A text box with suggestions: pick a saved exercise or type a new one #}
+                <input type="text" name="exercise" list="exercise-options" value="{{ form.get('exercise', '') }}"
+                       placeholder="e.g. Bench Press" maxlength="60" autocomplete="off" required>
+                <datalist id="exercise-options">
+                    {% for exercise in exercises %}<option value="{{ exercise.name }}">{% endfor %}
+                </datalist>
+                <small class="field-hint">Pick from the list or type a new exercise.</small>
+            </label>
+
+            <div class="form-grid form-grid-3">
+                <label class="field">
+                    <span>Weight</span>
+                    <div class="input-unit">
+                        <input type="number" name="weight" value="{{ form.get('weight', '') }}"
+                               min="{{ limits.weight[0] }}" max="{{ limits.weight[1] }}" step="any" required>
+                        <em>kg</em>
+                    </div>
+                </label>
+                <label class="field">
+                    <span>Reps</span>
+                    <input type="number" name="reps" value="{{ form.get('reps', '') }}"
+                           min="{{ limits.reps[0] }}" max="{{ limits.reps[1] }}" step="1" required>
+                </label>
+                <label class="field">
+                    <span>Sets</span>
+                    <input type="number" name="sets" value="{{ form.get('sets', '') }}"
+                           min="{{ limits.sets[0] }}" max="{{ limits.sets[1] }}" step="1" required>
+                </label>
+            </div>
+
+            <label class="field">
+                <span>Date</span>
+                <input type="date" name="performed_on" value="{{ form.get('performed_on', today) }}" max="{{ today }}" required>
+            </label>
+
+            {# Shown when one exercise is selected: the most recent set, as a reminder #}
+            {% if last %}
+                <p class="last-time">
+                    <strong>Last time:</strong>
+                    {{ last.weight_kg | amount }} kg × {{ last.reps }} reps × {{ last.sets }} sets
+                    on {{ last.performed_on.strftime('%d %b') }}
+                </p>
+            {% endif %}
+
+            <button type="submit" class="button">Save workout</button>
+        </form>
+
+        <aside class="note">
+            <strong>Estimated 1RM is an estimate.</strong> It predicts the heaviest
+            single rep from a set of several reps, using the Epley formula:
+            <code>weight × (1 + reps ÷ 30)</code>
+            It's most reliable for sets of about 2–10 reps. Use it to track progress,
+            not as a weight to attempt.
+        </aside>
+    </section>
+
+    {# ---------- History ---------- #}
+    <section class="card">
+        <div class="history-head">
+            <h2 class="card-title">History</h2>
+
+            {# Changing the exercise reloads the page straight away (script.js);
+               the Filter button is there in case JavaScript is off #}
+            <form method="GET" action="{{ url_for('workout') }}" class="filter-form">
+                <label class="sr-only" for="exercise-filter">Filter by exercise</label>
+                <select name="exercise" id="exercise-filter" data-auto-submit>
+                    <option value="">All exercises</option>
+                    {% for exercise in exercises %}
+                        <option value="{{ exercise.id }}" {% if selected_exercise and selected_exercise.id == exercise.id %}selected{% endif %}>
+                            {{ exercise.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="button button-ghost">Filter</button>
+            </form>
+        </div>
+
+        {% if best %}
+            <div class="best-lift">
+                <span class="step-label">Best estimated 1RM · {{ selected_exercise.name }}</span>
+                <strong>≈ {{ best.estimated_1rm | amount }} <small>kg</small></strong>
+                <span class="muted">
+                    from {{ best.weight_kg | amount }} kg × {{ best.reps }} reps on {{ best.performed_on.strftime('%d %b %Y') }}
+                </span>
+            </div>
+        {% endif %}
+
+        {% if workouts %}
+            {# One heading per day, newest day first #}
+            {% for day, day_workouts in workouts | groupby('performed_on') | reverse %}
+                <h3 class="day-heading">
+                    {% if day == today_date %}Today{% else %}{{ day.strftime('%A %d %B %Y') }}{% endif %}
+                </h3>
+                <ul class="workout-list">
+                    {% for w in day_workouts %}
+                        <li class="workout-item">
+                            <div class="workout-main">
+                                <a href="{{ url_for('workout', exercise=w.exercise_id) }}" class="workout-name">{{ w.exercise.name }}</a>
+                                <span class="muted">
+                                    {% if w.weight_kg > 0 %}{{ w.weight_kg | amount }} kg{% else %}Bodyweight{% endif %}
+                                    × {{ w.reps }} rep{{ 's' if w.reps != 1 }} × {{ w.sets }} set{{ 's' if w.sets != 1 }}
+                                </span>
+                            </div>
+                            {% if w.weight_kg > 0 %}
+                                <span class="e1rm" title="Estimated one-rep max">
+                                    <small>Est. 1RM</small>
+                                    ≈ {{ w.estimated_1rm | amount }} kg
+                                </span>
+                            {% else %}
+                                <span></span>
+                            {% endif %}
+                            {# script.js asks "Delete …?" before this form is sent #}
+                            <form method="POST" action="{{ url_for('delete_workout', workout_id=w.id) }}"
+                                  data-confirm="Delete {{ w.exercise.name }} on {{ w.performed_on.strftime('%d %b') }}?">
+                                {# Keeps the same filter after deleting #}
+                                <input type="hidden" name="exercise_filter" value="{{ selected_exercise.id if selected_exercise else '' }}">
+                                <button type="submit" class="icon-button" aria-label="Delete {{ w.exercise.name }}" title="Delete">×</button>
+                            </form>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endfor %}
+        {% elif selected_exercise %}
+            <p class="empty-note">No {{ selected_exercise.name }} workouts yet.
+                <a href="{{ url_for('workout') }}" class="text-link">Show all exercises</a></p>
+        {% else %}
+            <p class="empty-note">No workouts yet. Log your first one with the form.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}
