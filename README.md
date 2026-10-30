@@ -47,11 +47,8 @@ KZfitness is a personal computer science project built around my interest in fit
 
 Building KZfitness showed me how computer science can solve problems I run into in my own life, and it made me want to get better at programming.
 
-## How to Run
-
-[Add the steps here: install the requirements, set your API key as an environment variable, and run the app.]
 
 ## My Goal
 
-I want to publish KZfitness so other beginners can use it. First I need to keep improving the design, test every feature, and make sure the calculations and AI answers are accurate and useful.
+I want to publish KZfitness so everyone can use it. First I need to keep improving the design, test every feature, and make sure the calculations and AI answers are accurate and useful.
 
