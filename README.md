@@ -52,3 +52,4 @@ Building KZfitness showed me how computer science can solve problems I run into 
 
 I want to publish KZfitness so everyone can use it. First I need to keep improving the design, test every feature, and make sure the calculations and AI answers are accurate and useful.
 
+#### (I used ai tools to help write the Javascript, html and Sql code in the static and template files) 
