@@ -14,29 +14,37 @@ KZfitness is a personal computer science project built around my interest in fit
 
 ## Screenshots
 
+*The screenshots use sample data. Every page has a light and a dark theme.*
+
 ### Dashboard
-![KZfitness Dashboard](01_dashboard_dark_desktop.png) 
-
-### Workout
-![KZfitness Macro Tracker](03_workout_light_desktop.png)
-
-### Workout
-![KZfitness Macro Tracker](03_workout_light_desktop.png)
+<img src="KZfitness_screenshots%202/01_dashboard_dark_desktop.png" width="650" alt="KZfitness dashboard">
 
 ### Food
-![KZfitness Dashboard](02_food_light_desktop.png)
+<img src="KZfitness_screenshots%202/02_food_light_desktop.png" width="650" alt="Food log with live preview">
+
+### Workout
+<img src="KZfitness_screenshots%202/03_workout_light_desktop.png" width="650" alt="Workout log and estimated one-rep max">
 
 ### Progress
-![KZfitness Macro Tracker](04_progress_light_phone.png)
+<img src="KZfitness_screenshots%202/04_progress_light_desktop.png" width="650" alt="Weight, calorie and strength charts">
 
 ### AI Fitness Assistant
-![KZfitness AI Assistant](screenshots/ai-assistant.png)
+<img src="KZfitness_screenshots%202/06_coach_dark_desktop.png" width="650" alt="AI fitness assistant">
+
+*The answer shown is a sample.*
 
 ### Calculators
-![KZfitness AI Assistant](05_calculators_dark_desktop.png)
+<img src="KZfitness_screenshots%202/05_calculators_dark_desktop.png" width="650" alt="Calorie, BMI and body fat calculators">
 
 ### Profile
-![KZfitness AI Assistant](07_profile_dark_desktop.png)
+<img src="KZfitness_screenshots%202/07_profile_dark_desktop.png" width="650" alt="Profile form">
+
+### On a phone
+<p>
+  <img src="KZfitness_screenshots%202/01_dashboard_light_phone.png" width="200" alt="Dashboard on a phone">
+  <img src="KZfitness_screenshots%202/04_progress_dark_phone.png" width="200" alt="Progress on a phone">
+  <img src="KZfitness_screenshots%202/06_coach_light_phone.png" width="200" alt="AI assistant on a phone">
+</p>
 
 # What I Learned
 
