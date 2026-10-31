@@ -18,7 +18,7 @@ from calculations import (
     strength_by_day,
     best_lift,
     MIN_CHART_POINTS,
-    energy_breakdoown
+    energy_breakdown,
     calculate_bmi,
     bmi_category,
     calculate_body_fat_navy,
