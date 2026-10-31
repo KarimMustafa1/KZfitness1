@@ -13,9 +13,9 @@ and a chatbot just to find out how many calories are in a chicken breast.
 - **Workout logging:** record exercises and lifts for each gym session.
 - **AI fitness assistant:** ask about nutrition, calorie estimates, and workout splits.
 - **Personalized guidance:** enter your age, sex, weight, and height to get recommendations that fit you.
-- **Fitness calculators:** BMI, daily calorie needs, and a one-rep max calculator.
+- **Fitness calculators:** BMI, daily calorie needs and protein calculator.
 
-## The very special features
+## Highlights
 - **Estimated one-rep max:** you never have to risk testing your max. Log a normal set,
   like 80 kg × 8, and KZfitness works out the heaviest single rep you could probably
   lift (about 101 kg) using the Epley formula. It also tracks your best one for each
@@ -24,6 +24,13 @@ and a chatbot just to find out how many calories are in a chicken breast.
   weight over time, your food log shows how many calories you ate each day against your
   target, and every exercise gets its own strength graph with your heaviest lift and
   your estimated one-rep max.
+
+   ## How to run it
+   ```
+   pip install -r requirements.txt
+   python app.py
+   ```
+   Then open http://127.0.0.1:5001. For the AI assistant, set an `ANTHROPIC_API_KEY` first.
 
 
 ## Screenshots
@@ -83,6 +90,7 @@ and a chatbot just to find out how many calories are in a chicken breast.
 
 Building KZfitness showed me how computer science can solve problems from my own life,
 and it made me want to get much better at programming.
+
 ## Feedback and changes
 
 I asked 5 friends to try KZfitness and tell me what annoyed them.
