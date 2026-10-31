@@ -5,8 +5,8 @@
  *   - calories eaten per day, with the daily target as a dashed line
  *   - strength for one exercise: heaviest weight and estimated 1RM
 
-document.addEventListener("DOMContentLoaded", function () {
 */
+document.addEventListener("DOMContentLoaded", function () {
 
     // ---------- Read the chart data from the page ----------
     const dataElement = document.getElementById("chart-data");
