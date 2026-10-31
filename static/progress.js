@@ -5,9 +5,6 @@
  *   - calories eaten per day, with the daily target as a dashed line
  *   - strength for one exercise: heaviest weight and estimated 1RM
  *
- * The numbers come from Python: app.py builds them, and the page template puts
- * them in <script id="chart-data" type="application/json"> for this file to read.
- */
 
 document.addEventListener("DOMContentLoaded", function () {
 
