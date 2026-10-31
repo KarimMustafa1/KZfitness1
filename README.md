@@ -1,6 +1,11 @@
- ## KZfitness
+# KZfitness
 
-KZfitness is a personal computer science project built around my interest in fitness and strength training. It's a web app that puts macro tracking, workout logging, and an AI fitness assistant in one place, so you don't have to keep switching between a tracker and a chatbot just to find out how many calories are in a chicken breast.
+KZfitness is a personal computer science project built around my interest in fitness
+and strength training. It's a web app that puts macro tracking, workout logging, and an
+AI fitness assistant in one place, so you don't have to keep switching between a tracker
+and a chatbot just to find out how many calories are in a chicken breast.
+
+**Built with:** Python, Flask, SQLite, HTML/CSS/JavaScript, Chart.js and the Claude API.
 
 ## Features
 
@@ -126,4 +131,4 @@ My plan to get there:
 The long-term goal is an app that combines tracking and coaching in one place, the way
 I'd want it as someone who trains.
 
-#### (I used ai tools to help write the Javascript and html code in the static and template files) 
+#### (I used ai tools to help write the Javascript, html and CSS code in the static and template files) 
